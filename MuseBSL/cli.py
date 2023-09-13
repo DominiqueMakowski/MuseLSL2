@@ -8,9 +8,6 @@ class CLI:
         getattr(self, command)()
 
     def find(self):
-        # from .find_devices import find_devices
-
-        # find_devices()
         from .muse import Muse
 
         muse = Muse(address=None)

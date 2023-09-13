@@ -26,7 +26,7 @@ class Muse:
     def connect(self):
         self.adapter.start()
         self.device = self.adapter.connect(self.address)
-        print(f"Connected to {self.address}.")
+        print(f"Connected to Muse ({self.address})...")
 
     def start(self):
         self.first_sample = True

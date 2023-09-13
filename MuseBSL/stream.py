@@ -35,11 +35,11 @@ def stream(address):
     # Start streaming
     muse.start()
 
-    while bsl.lsl.local_clock() - muse.time_start < 10:
+    # Loop until interrupted
+    while True:
         try:
             time.sleep(1)
         except KeyboardInterrupt:
-            muse.stop()
             break
 
     muse.stop()

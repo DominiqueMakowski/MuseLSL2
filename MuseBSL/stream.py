@@ -1,7 +1,10 @@
 import bsl
 
+from .muse import Muse
+
 
 def stream(address):
+    # Create EEG stream
     info_eeg = bsl.lsl.StreamInfo(
         name="Muse",
         stype="EEG",
@@ -20,6 +23,8 @@ def stream(address):
             "label", channel
         ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
 
-    print(info_eeg.desc)
+    # Create outlet
     eeg_outlet = bsl.lsl.StreamOutlet(info_eeg, chunk_size=6, max_buffered=360)
-    print(eeg_outlet)
+
+    # Connect
+    muse = Muse(address=address)

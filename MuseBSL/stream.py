@@ -3,7 +3,7 @@ import bsl
 
 def stream(address):
     print("A")
-    info_eeg = bsl.StreamInfo(
+    info_eeg = bsl.lsl.StreamInfo(
         name="Muse",
         stype="EEG",
         n_channels=5,
@@ -23,5 +23,5 @@ def stream(address):
         ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
 
     print(info_eeg.desc())
-    eeg_outlet = bsl.StreamOutlet(info_eeg, 12)
+    eeg_outlet = bsl.lsl.StreamOutlet(info_eeg, 12)
     print(eeg_outlet)

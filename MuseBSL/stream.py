@@ -2,8 +2,7 @@ import bsl
 
 
 def stream(address):
-    print(f"STREAMING: {address}")
-
+    print("A")
     info_eeg = bsl.StreamInfo(
         name="Muse",
         stype="EEG",
@@ -12,8 +11,9 @@ def stream(address):
         dtype="float32",
         source_id=address,
     )
-
+    print("B")
     # Add additional information
+
     info_eeg.desc().append_child_value("manufacturer", "Muse")
     eeg_channels = info_eeg.desc().append_child("channels")
 

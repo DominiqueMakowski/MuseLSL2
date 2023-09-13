@@ -3,7 +3,8 @@ import sys
 
 # from .cli import CLI
 
-if __name__ == "__main__":
+
+def main():
     parser = argparse.ArgumentParser(
         description="Stream and visualize data from the Muse EEG headset.",
         usage="""MuseBSL <command> [<args>]
@@ -24,3 +25,7 @@ if __name__ == "__main__":
     #     exit(1)
 
     # cli = CLI(args.command)
+
+
+if __name__ == "__main__":
+    main()

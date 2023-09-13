@@ -11,3 +11,20 @@ class CLI:
         from .find_devices import find_devices
 
         find_devices()
+
+    def stream(self):
+        parser = argparse.ArgumentParser(
+            description="Start an LSL stream from Muse headset."
+        )
+        parser.add_argument(
+            "-a",
+            "--address",
+            dest="address",
+            type=str,
+            default=None,
+            help="Device MAC address.",
+        )
+        args = parser.parse_args(sys.argv[2:])
+        from .stream import stream
+
+        stream(args.address)

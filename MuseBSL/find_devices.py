@@ -2,7 +2,7 @@ from .backends import BleakBackend
 
 
 # Returns a list of available Muse devices.
-def find_devices(backend="auto", interface=None):
+def find_devices():
     adapter = BleakBackend()
 
     adapter.start()

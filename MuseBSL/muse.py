@@ -1,3 +1,5 @@
+import bsl
+
 from .backends import BleakBackend
 from .find import find_devices
 
@@ -25,3 +27,11 @@ class Muse:
         self.adapter.start()
         self.device = self.adapter.connect(self.address)
         print(f"Connected to {self.address}.")
+
+    def start(self):
+        self.first_sample = True
+        self.time_start = bsl.lsl.local_clock()
+
+    def stop(self):
+        self.device.disconnect()
+        self.adapter.stop()

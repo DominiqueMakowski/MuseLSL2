@@ -36,8 +36,9 @@ def stream(address):
     muse.start()
 
     # Loop until interrupted
-    # while True:
-    while bsl.lsl.local_clock() - muse.time_start < 20:
+    print("Streaming... (interrupt by pressing CTRL + C)")
+    while True:
+        # while bsl.lsl.local_clock() - muse.time_start < 20:
         try:
             time.sleep(10)
         except KeyboardInterrupt:

@@ -8,10 +8,9 @@ class CLI:
         getattr(self, command)()
 
     def find(self):
-        from .muse import Muse
+        from .find import find_devices
 
-        muse = Muse(address=None)
-        muse.find()
+        find_devices(max_duration=10, verbose=True)
 
     def stream(self):
         parser = argparse.ArgumentParser(

@@ -20,7 +20,7 @@ class Muse:
                 print("Multiple Muses found. Please specify MAC address.")
                 self.address = muses[0]["address"]  # Pick first one
 
-    def find(self, max_duration=10, verbose=False):
+    def find(self, max_duration=10, verbose=True):
         self.adapter.start()
         print(f"Searching for Muses (max. {max_duration} seconds)...")
         devices = self.adapter.scan(timeout=10.5)  # Muse scan timeout

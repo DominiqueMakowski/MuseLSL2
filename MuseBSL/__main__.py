@@ -17,14 +17,12 @@ def main():
     # exclude the rest of the args too, or validation will fail
     args = parser.parse_args(sys.argv[1:2])
 
-    print("A")
+    if not hasattr(CLI, args.command):
+        print("Incorrect usage. See help below.")
+        parser.print_help()
+        exit(1)
 
-    # if not hasattr(CLI, args.command):
-    #     print("Incorrect usage. See help below.")
-    #     parser.print_help()
-    #     exit(1)
-
-    cli = CLI(args.command)
+    CLI(args.command)
 
 
 if __name__ == "__main__":

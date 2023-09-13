@@ -10,6 +10,4 @@ class CLI:
     def find(self):
         from .find_devices import find_devices
 
-        print("something")
-
         find_devices()

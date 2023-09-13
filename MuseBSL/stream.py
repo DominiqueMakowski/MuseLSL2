@@ -12,7 +12,7 @@ def stream(address):
     )
 
     # # Add additional information
-    # info_eeg.desc().append_child_value("manufacturer", "Muse")
+    info_eeg.desc.append_child_value("manufacturer", "Muse")
     # eeg_channels = info_eeg.desc().append_child("channels")
 
     # for channel in ["TP9", "AF7", "AF8", "TP10", "Right AUX"]:

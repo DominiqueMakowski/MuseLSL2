@@ -9,7 +9,7 @@ class Muse:
         # Create Bluetooth adapter
         self.adapter = BleakBackend()
 
-        # Assign MAC address
+        # Assign (or find) MAC address
         self.address = address
         if address is None:
             muses = find_devices(max_duration=10, verbose=False)

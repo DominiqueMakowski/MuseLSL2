@@ -9,6 +9,9 @@ setup(
     license="MIT",
     url="https://github.com/DominiqueMakowski/MuseBSL",
     entry_points={"console_scripts": ["MuseBSL=MuseBSL.__main__:main"]},
-    install_requires=["bleak"],
+    install_requires=[
+        "bleak",  # Bluetooth backend
+        "bsl",  # Brain Streaming Layer (replaces lsl)
+    ],
     packages=find_packages(),
 )

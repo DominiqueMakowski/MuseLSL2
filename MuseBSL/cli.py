@@ -7,9 +7,9 @@ class CLI:
         # use dispatch pattern to invoke method with same name
         getattr(self, command)()
 
-    # def list(self):
-    #     from .find_devices import find_devices
+    def find(self):
+        from .find_devices import find_devices
 
-    #     print("something")
+        print("something")
 
-    #     find_devices()
+        find_devices()

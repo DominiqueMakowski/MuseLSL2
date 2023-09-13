@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-# from .cli import CLI
+from .cli import CLI
 
 
 def main():
@@ -15,7 +15,7 @@ def main():
 
     # parse_args defaults to [1:] for args, but you need to
     # exclude the rest of the args too, or validation will fail
-    # args = parser.parse_args(sys.argv[1:2])
+    args = parser.parse_args(sys.argv[1:2])
 
     print("A")
 
@@ -24,7 +24,7 @@ def main():
     #     parser.print_help()
     #     exit(1)
 
-    # cli = CLI(args.command)
+    cli = CLI(args.command)
 
 
 if __name__ == "__main__":

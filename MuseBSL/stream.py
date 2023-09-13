@@ -34,15 +34,16 @@ def stream(address):
 
     # Start streaming
     muse.start()
+    print("Streaming... (CTRL + C to interrupt)")
+
+    eeg_outlet.push_sample([0, 0, 0, 0, 0])  # Needed to start outlet
 
     # Loop until interrupted
-    print("Streaming... (interrupt by pressing CTRL + C)")
     while True:
-        # while bsl.lsl.local_clock() - muse.time_start < 20:
         try:
-            time.sleep(10)
+            time.sleep(1)
         except KeyboardInterrupt:
-            print("interrupted!")
+            print("Stream interrupted. Stopping...")
             break
 
     muse.stop()

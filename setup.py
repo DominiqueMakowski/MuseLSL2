@@ -11,7 +11,9 @@ setup(
     entry_points={"console_scripts": ["MuseBSL=MuseBSL.__main__:main"]},
     install_requires=[
         "bleak",  # Bluetooth backend
+        "bitstring",  # For decoding Muse packets
         "bsl",  # Brain Streaming Layer (replaces lsl)
+        "numpy",
     ],
     packages=find_packages(),
 )

@@ -36,11 +36,11 @@ def stream(address):
     muse.start()
 
     # Loop until interrupted
-    while True:
-        try:
+    try:
+        while True:
             time.sleep(1)
-        except KeyboardInterrupt:
-            break
+    except KeyboardInterrupt:
+        print("interrupted!")
 
     muse.stop()
     print("Disconnected.")

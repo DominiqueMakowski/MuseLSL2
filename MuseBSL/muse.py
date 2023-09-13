@@ -12,7 +12,7 @@ class Muse:
         # Assign (or find) MAC address
         self.address = address
         if address is None:
-            muses = find_devices(max_duration=10, verbose=False)
+            muses = find_devices(max_duration=5, verbose=False)
             if len(muses) == 0:
                 print("No Muses found, make sure it's connected.")
             if len(muses) == 1:
@@ -23,3 +23,5 @@ class Muse:
 
     def connect(self):
         self.adapter.start()
+        self.device = self.adapter.connect(self.address)
+        print(f"Connected to {self.address}.")

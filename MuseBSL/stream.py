@@ -36,11 +36,13 @@ def stream(address):
     muse.start()
 
     # Loop until interrupted
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("interrupted!")
+    # while True:
+    while bsl.lsl.local_clock() - muse.time_start < 20:
+        try:
+            time.sleep(10)
+        except KeyboardInterrupt:
+            print("interrupted!")
+            break
 
     muse.stop()
     print("Disconnected.")

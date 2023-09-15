@@ -8,6 +8,6 @@ def view(
     data_source="EEG",
     filter=True,
 ):
-    from .viewer import viewer_v2
+    from .viewer_v2 import viewer_v2
 
     viewer_v2.view()

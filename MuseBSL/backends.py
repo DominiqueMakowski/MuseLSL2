@@ -1,15 +1,47 @@
 import asyncio
 import atexit
+import time
 
 import bleak
 
 
-# ==============================================================================
-# Bleak (https://github.com/hbldh/bleak)
-# ==============================================================================
 def _wait(coroutine):
     loop = asyncio.get_event_loop()
     return loop.run_until_complete(coroutine)
+
+
+def sleep(seconds):
+    time.sleep(seconds)
+
+
+class BleakBackend:
+    def __init__(self):
+        self.connected = set()
+        atexit.register(self.stop)
+        # run the event loop when sleeping
+        global sleep
+        sleep = self.pump
+
+    def start(self):
+        pass
+
+    def pump(self, seconds=1):
+        _wait(asyncio.sleep(seconds))
+
+    def stop(self):
+        for device in [*self.connected]:
+            device.disconnect()
+
+    def scan(self, timeout=10):
+        if isinstance(bleak, ModuleNotFoundError):
+            raise bleak
+        devices = _wait(bleak.BleakScanner.discover(timeout))
+        return [{"name": device.name, "address": device.address} for device in devices]
+
+    def connect(self, address):
+        result = BleakDevice(self, address)
+        result.connect()
+        return result
 
 
 class BleakDevice:
@@ -46,33 +78,3 @@ class BleakDevice:
             callback(value_handle, data)
 
         _wait(self._client.start_notify(uuid, wrap))
-
-
-class BleakBackend:
-    def __init__(self):
-        self.connected = set()
-        atexit.register(self.stop)
-        # run the event loop when sleeping
-        global sleep
-        sleep = self.pump
-
-    def start(self):
-        pass
-
-    def pump(self, seconds=1):
-        _wait(asyncio.sleep(seconds))
-
-    def stop(self):
-        for device in [*self.connected]:
-            device.disconnect()
-
-    def scan(self, timeout=10):
-        if isinstance(bleak, ModuleNotFoundError):
-            raise bleak
-        devices = _wait(bleak.BleakScanner.discover(timeout))
-        return [{"name": device.name, "address": device.address} for device in devices]
-
-    def connect(self, address):
-        result = BleakDevice(self, address)
-        result.connect()
-        return result

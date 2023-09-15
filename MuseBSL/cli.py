@@ -212,4 +212,4 @@ class CLI:
         # args = parser.parse_args(sys.argv[2:])
         from .view import view
 
-        view(data_source="EEG")
+        view()

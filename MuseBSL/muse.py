@@ -282,19 +282,11 @@ class Muse:
 
     def _subscribe_eeg(self):
         """subscribe to eeg stream."""
-
-        # See https://github.com/alexandrebarachant/muse-lsl/blob/master/muselsl/constants.py
-        TP9 = "273e0003-4c4d-454d-96be-f03bac821358"  # 0x1f-0x21
-        AF7 = "273e0004-4c4d-454d-96be-f03bac821358"  # fp1 0x22-0x24
-        AF8 = "273e0005-4c4d-454d-96be-f03bac821358"  # fp2 0x25-0x27
-        TP10 = "273e0006-4c4d-454d-96be-f03bac821358"  # 0x28-0x2a
-        RIGHTAUX = "273e0007-4c4d-454d-96be-f03bac821358"  # 0x2b-0x2d
-
-        self.device.subscribe(TP9, callback=handle_eeg)
-        self.device.subscribe(AF7, callback=handle_eeg)
-        self.device.subscribe(AF8, callback=self._handle_eeg)
-        self.device.subscribe(TP10, callback=self._handle_eeg)
-        self.device.subscribe(RIGHTAUX, callback=self._handle_eeg)
+        self.device.subscribe(MUSE_GATT_ATTR_TP9, callback=self._handle_eeg)
+        self.device.subscribe(MUSE_GATT_ATTR_AF7, callback=self._handle_eeg)
+        self.device.subscribe(MUSE_GATT_ATTR_AF8, callback=self._handle_eeg)
+        self.device.subscribe(MUSE_GATT_ATTR_TP10, callback=self._handle_eeg)
+        self.device.subscribe(MUSE_GATT_ATTR_RIGHTAUX, callback=self._handle_eeg)
 
     def _unpack_eeg_channel(self, packet):
         """Decode data packet of one EEG channel.

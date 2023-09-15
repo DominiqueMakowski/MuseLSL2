@@ -208,78 +208,8 @@ class CLI:
         )
 
     def view(self):
-        parser = argparse.ArgumentParser(
-            description="View EEG data from an LSL stream."
-        )
-        parser.add_argument(
-            "-w",
-            "--window",
-            dest="window",
-            type=float,
-            default=5.0,
-            help="Window length to display in seconds.",
-        )
-        parser.add_argument(
-            "-s", "--scale", dest="scale", type=float, default=100, help="Scale in uV."
-        )
-        parser.add_argument(
-            "-r",
-            "--refresh",
-            dest="refresh",
-            type=float,
-            default=0.2,
-            help="Refresh rate in seconds.",
-        )
-        parser.add_argument(
-            "-f",
-            "--figure",
-            dest="figure",
-            type=str,
-            default="15x6",
-            help="Window size.",
-        )
-        parser.add_argument(
-            "-st",
-            "--stream",
-            dest="data_source",
-            type=str,
-            default="EEG",
-            help="Stream to visualize.",
-        )
-        parser.add_argument(
-            "-fi",
-            "--filter",
-            dest="filter",
-            type=bool,
-            default=True,
-            help="Filter the data. Must be False for other streams than EEG for now.",
-        )
-        parser.add_argument(
-            "-v",
-            "--version",
-            dest="version",
-            type=int,
-            default=1,
-            help="Viewer version (1 or 2) - 1 is the default stable version, 2 is in development (and takes no arguments).",
-        )
-        parser.add_argument(
-            "-b",
-            "--backend",
-            dest="backend",
-            type=str,
-            default="TkAgg",
-            help="Matplotlib backend to use. Default: %(default)s",
-        )
+        parser = argparse.ArgumentParser(description="View data from the stream.")
         args = parser.parse_args(sys.argv[2:])
-        from . import view
+        from .view import view
 
-        view(
-            args.window,
-            args.scale,
-            args.refresh,
-            args.figure,
-            args.version,
-            args.backend,
-            args.data_source,
-            args.filter,
-        )
+        view(data_source="EEG")

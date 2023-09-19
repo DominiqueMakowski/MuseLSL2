@@ -104,6 +104,18 @@ class CLI:
             args.disable_light,
         )
 
+    def view(self):
+        print("yo!")
+        from .view import view
+
+        # view()
+
+    def view2(self):
+        print("yay!")
+        from .view import view
+
+        # view()
+
     def record(self):
         parser = argparse.ArgumentParser(description="Record data from an LSL stream.")
         parser.add_argument(
@@ -206,8 +218,3 @@ class CLI:
             args.interface,
             args.name,
         )
-
-    def view(self):
-        from .view import view
-
-        view()

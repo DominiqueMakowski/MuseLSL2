@@ -283,8 +283,7 @@ def stream(
             gyro_string = " GYRO" if gyro_enabled else ""
 
             print(
-                "Streaming... %s%s%s%s... (CTRL + C to interrupt)"
-                % (eeg_string, ppg_string, acc_string, gyro_string)
+                f"Streaming... {eeg_string, ppg_string, acc_string, gyro_string}... (CTRL + C to interrupt)"
             )
 
             while time() - muse.last_timestamp < timeout:

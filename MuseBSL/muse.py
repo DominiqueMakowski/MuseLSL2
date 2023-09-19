@@ -101,7 +101,7 @@ class Muse:
 
         self.last_timestamp = self.time_func()
 
-    return True
+        return True
 
     def _write_cmd(self, cmd):
         """Wrapper to write a command to the Muse device.

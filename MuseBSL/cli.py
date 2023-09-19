@@ -26,15 +26,7 @@ class CLI:
             help="Device MAC address.",
         )
         parser.add_argument(
-            "-n",
-            "--name",
-            dest="name",
-            type=str,
-            default=None,
-            help="Name of the device.",
-        )
-        parser.add_argument(
-            "-p", "--ppg", default=False, action="store_true", help="Include PPG data"
+            "-p", "--ppg", default=True, action="store_true", help="Include PPG data"
         )
         parser.add_argument(
             "-c",
@@ -63,7 +55,6 @@ class CLI:
 
         stream(
             args.address,
-            args.name,
             args.ppg,
             args.acc,
             args.gyro,

@@ -11,6 +11,8 @@ def _wait(coroutine):
 
 
 def sleep(seconds):
+    # I am not sure how this works but it is needed.
+    # Probably has to do something with the "global" declaration below
     time.sleep(seconds)
 
 

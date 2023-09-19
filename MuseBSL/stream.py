@@ -29,9 +29,7 @@ from .muse import Muse
 # Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
 def stream(
     address,
-    interface=None,
-    name=None,
-    ppg_enabled=False,
+    ppg=True,
     acc_enabled=False,
     gyro_enabled=False,
     disable_light=False,
@@ -62,7 +60,7 @@ def stream(
 
     eeg_outlet = StreamOutlet(eeg_info, LSL_EEG_CHUNK)
 
-    if ppg_enabled:
+    if ppg is True:
         ppg_info = StreamInfo(
             "Muse",
             "PPG",

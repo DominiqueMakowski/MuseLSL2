@@ -5,7 +5,7 @@ from time import sleep, time
 import bitstring
 import numpy as np
 
-from . import backends
+from .backends import BleakBackend
 from .constants import *
 
 
@@ -62,11 +62,8 @@ class Muse:
     def connect(self):
         """Connect to the device"""
 
-        print(
-            "Connecting to %s: %s..."
-            % (self.name if self.name else "Muse", self.address)
-        )
-        self.adapter = backends.BleakBackend()
+        print(f"Connecting to {self.address}...")
+        self.adapter = BleakBackend()
 
         self.adapter.start()
         self.device = self.adapter.connect(self.address)

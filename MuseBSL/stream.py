@@ -283,7 +283,7 @@ def stream(
             gyro_string = " GYRO" if gyro_enabled else ""
 
             print(
-                "Streaming%s%s%s%s..."
+                "Streaming... %s%s%s%s... (CTRL + C to interrupt)"
                 % (eeg_string, ppg_string, acc_string, gyro_string)
             )
 
@@ -292,6 +292,7 @@ def stream(
                     backends.sleep(1)
                 except KeyboardInterrupt:
                     muse.stop()
+                    print("Stream interrupted. Stopping...")
                     break
 
             print("Disconnected.")

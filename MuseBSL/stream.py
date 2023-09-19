@@ -124,7 +124,7 @@ def stream(
             outlet.push_sample(data[:, ii], timestamps[ii])
 
     push_eeg = partial(push, outlet=eeg_outlet)
-    push_ppg = partial(push, outlet=ppg_outlet) if ppg_enabled else None
+    push_ppg = partial(push, outlet=ppg_outlet) if ppg else None
     push_acc = partial(push, outlet=acc_outlet) if acc_enabled else None
     push_gyro = partial(push, outlet=gyro_outlet) if gyro_enabled else None
 
@@ -144,7 +144,7 @@ def stream(
         print("Connected.")
         muse.start()
 
-        ppg_string = ", PPG" if ppg_enabled else ""
+        ppg_string = ", PPG" if ppg else ""
         acc_string = ", ACC" if acc_enabled else ""
         gyro_string = ", GYRO" if gyro_enabled else ""
 

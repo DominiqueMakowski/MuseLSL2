@@ -76,20 +76,7 @@ void main() {
 """
 
 
-def view(data_source="EEG"):
-    print("Looking for an " + data_source + " stream...")
-    streams = resolve_byprop("type", data_source, timeout=LSL_SCAN_TIMEOUT)
-
-    if len(streams) == 0:
-        raise (RuntimeError("Can't find EEG stream."))
-    print("Start acquiring data.")
-
-    inlet = StreamInlet(streams[0], max_chunklen=LSL_EEG_CHUNK)
-    Canvas(inlet, data_source=data_source)
-    app.run()
-
-
-class Canvas(app.Canvas, data_source="EEG"):
+class Canvas(app.Canvas):
     def __init__(self, lsl_inlet, scale=500, filt=True):
         app.Canvas.__init__(
             self, title="EEG - Use your wheel to zoom!", keys="interactive"
@@ -261,3 +248,16 @@ class Canvas(app.Canvas, data_source="EEG"):
         gloo.set_viewport(0, 0, *self.physical_size)
         self.program.draw("line_strip")
         [t.draw() for t in self.names + self.quality]
+
+
+def view():
+    print("Looking for a stream...")
+    streams = resolve_byprop("type", "EEG", timeout=LSL_SCAN_TIMEOUT)  # Find stream
+
+    if len(streams) == 0:
+        raise (RuntimeError("Can't find EEG stream."))
+    print("Start acquiring data.")
+
+    inlet = StreamInlet(streams[0], max_chunklen=LSL_EEG_CHUNK)
+    Canvas(inlet)
+    app.run()

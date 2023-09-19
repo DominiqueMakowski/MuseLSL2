@@ -105,13 +105,9 @@ class CLI:
         )
 
     def view(self):
-        from . import view
+        from .view import view
 
-        view.view(data_source="EEG")
-
-        # from .view import view
-
-        # view()
+        view()
 
     def record(self):
         parser = argparse.ArgumentParser(description="Record data from an LSL stream.")

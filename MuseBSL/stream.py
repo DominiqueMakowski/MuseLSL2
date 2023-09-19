@@ -7,7 +7,7 @@ from sys import platform
 
 from pylsl import StreamInfo, StreamOutlet
 
-from .backends import bleak_sleep
+from . import backends
 from .constants import (
     AUTO_DISCONNECT_DELAY,
     LSL_ACC_CHUNK,
@@ -156,7 +156,7 @@ def stream(
 
         while time.time() - muse.last_timestamp < timeout:
             try:
-                bleak_sleep(1)
+                backends.sleep(1)
             except KeyboardInterrupt:
                 muse.stop()
                 print("Stream interrupted. Stopping...")

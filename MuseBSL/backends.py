@@ -10,8 +10,7 @@ def _wait(coroutine):
     return loop.run_until_complete(coroutine)
 
 
-def bleak_sleep(seconds):
-    """This function is used to replace time.sleep() when using bleak and pump while sleeping"""
+def sleep(seconds):
     time.sleep(seconds)
 
 
@@ -20,8 +19,8 @@ class BleakBackend:
         self.connected = set()
         atexit.register(self.stop)
         # run the event loop when sleeping
-        global bleak_sleep
-        bleak_sleep = self.pump
+        global sleep
+        sleep = self.pump
 
     def start(self):
         pass

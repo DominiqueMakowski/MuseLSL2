@@ -40,7 +40,6 @@ def stream(
 
         device = find_devices(max_duration=10, verbose=True)[0]
         address = device["address"]
-        name = device["name"]
 
     eeg_info = StreamInfo(
         "Muse",
@@ -134,7 +133,6 @@ def stream(
         callback_ppg=push_ppg,
         callback_acc=push_acc,
         callback_gyro=push_gyro,
-        name=name,
         disable_light=disable_light,
     )
 

@@ -22,7 +22,6 @@ class Muse:
         callback_gyro=None,
         callback_ppg=None,
         time_func=time,
-        name=None,
         preset=None,
         disable_light=False,
     ):
@@ -39,7 +38,6 @@ class Muse:
         """
 
         self.address = address
-        self.name = name
         self.callback_eeg = callback_eeg
         self.callback_telemetry = callback_telemetry
         self.callback_control = callback_control

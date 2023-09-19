@@ -1,9 +1,9 @@
 import re
 import subprocess
+import time
 from functools import partial
 from shutil import which
 from sys import platform
-from time import time
 
 from pylsl import StreamInfo, StreamOutlet
 
@@ -157,7 +157,7 @@ def stream(
             f"Streaming... EEG{ppg_string}{acc_string}{gyro_string}... (CTRL + C to interrupt)"
         )
 
-        while time() - muse.last_timestamp < timeout:
+        while time.time() - muse.last_timestamp < timeout:
             try:
                 backends.sleep(1)
             except KeyboardInterrupt:

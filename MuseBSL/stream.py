@@ -29,7 +29,6 @@ from .muse import Muse
 # Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
 def stream(
     address,
-    backend="auto",
     interface=None,
     name=None,
     ppg_enabled=False,

@@ -21,7 +21,6 @@ class Muse:
         callback_acc=None,
         callback_gyro=None,
         callback_ppg=None,
-        backend="auto",
         interface=None,
         time_func=time,
         name=None,
@@ -58,7 +57,7 @@ class Muse:
 
         self.interface = interface
         self.time_func = time_func
-        self.backend = helper.resolve_backend(backend)
+        self.backend = "bleak"
         self.preset = preset
         self.disable_light = disable_light
 
@@ -168,16 +167,6 @@ class Muse:
 
     def stop(self):
         """Stop streaming."""
-        if self.backend == "bluemuse":
-            address = self.address if self.address is not None else self.name
-            if address is None:
-                subprocess.call("start bluemuse://stopall", shell=True)
-            else:
-                subprocess.call(
-                    "start bluemuse://stop?addresses={0}".format(address), shell=True
-                )
-            return
-
         self._write_cmd_str("h")
 
     def keep_alive(self):
@@ -203,10 +192,6 @@ class Muse:
 
     def disconnect(self):
         """disconnect."""
-        if self.backend == "bluemuse":
-            subprocess.call("start bluemuse://shutdown", shell=True)
-            return
-
         self.device.disconnect()
         if self.adapter:
             self.adapter.stop()

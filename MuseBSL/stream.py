@@ -158,7 +158,7 @@ def stream(
             f"Streaming EEG{ppg_string}{acc_string}{gyro_string}... (CTRL + C to interrupt)"
         )
 
-        while time.time() - muse.last_timestamp < 30:
+        while time.time() - muse.last_timestamp < 3:
             try:
                 time.sleep(1)  # wait 1 seconds
             except KeyboardInterrupt:

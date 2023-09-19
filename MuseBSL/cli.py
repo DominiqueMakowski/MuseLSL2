@@ -107,7 +107,7 @@ class CLI:
     def view(self):
         from . import view
 
-        view.view()
+        view.view(data_source="EEG")
 
         # from .view import view
 

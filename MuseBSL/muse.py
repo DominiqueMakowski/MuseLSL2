@@ -4,7 +4,6 @@ from time import sleep, time
 
 import bitstring
 import numpy as np
-import pygatt
 
 from . import backends, helper
 from .constants import *
@@ -128,11 +127,6 @@ class Muse:
         "ps": preset selected
         "rc": return status, if 0 is OK
         """
-        if self.backend == "bluemuse":
-            helper.warn_bluemuse_not_supported(
-                "Control information available manually by using the BlueMuse GUI."
-            )
-            return
         self._write_cmd_str("s")
 
     def ask_device_info(self):
@@ -149,11 +143,6 @@ class Muse:
         "pv": protocol version?
         "rc": return status, if 0 is OK
         """
-        if self.backend == "bluemuse":
-            helper.warn_bluemuse_not_supported(
-                "Device information available manually by using the BlueMuse GUI."
-            )
-            return
         self._write_cmd_str("v1")
 
     def ask_reset(self):
@@ -165,16 +154,6 @@ class Muse:
 
     def start(self):
         """Start streaming."""
-        if self.backend == "bluemuse":
-            address = self.address if self.address is not None else self.name
-            if address is None:
-                subprocess.call("start bluemuse://start?streamfirst=true", shell=True)
-            else:
-                subprocess.call(
-                    "start bluemuse://start?addresses={0}".format(address), shell=True
-                )
-            return
-
         self.first_sample = True
         self._init_sample()
         self._init_ppg_sample()
@@ -487,16 +466,10 @@ class Muse:
         self.callback_gyro(samples, timestamps)
 
     def _subscribe_ppg(self):
-        try:
-            """subscribe to ppg stream."""
-            self.device.subscribe(MUSE_GATT_ATTR_PPG1, callback=self._handle_ppg)
-            self.device.subscribe(MUSE_GATT_ATTR_PPG2, callback=self._handle_ppg)
-            self.device.subscribe(MUSE_GATT_ATTR_PPG3, callback=self._handle_ppg)
-
-        except pygatt.exceptions.BLEError as error:
-            raise Exception(
-                "PPG data is not available on this device. PPG is only available on Muse 2"
-            )
+        """subscribe to ppg stream."""
+        self.device.subscribe(MUSE_GATT_ATTR_PPG1, callback=self._handle_ppg)
+        self.device.subscribe(MUSE_GATT_ATTR_PPG2, callback=self._handle_ppg)
+        self.device.subscribe(MUSE_GATT_ATTR_PPG3, callback=self._handle_ppg)
 
     def _handle_ppg(self, handle, data):
         """Callback for receiving a sample.

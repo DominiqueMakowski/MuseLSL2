@@ -5,7 +5,7 @@ from time import sleep, time
 import bitstring
 import numpy as np
 
-from . import backends, helper
+from . import backends
 from .constants import *
 
 

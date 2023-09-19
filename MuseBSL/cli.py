@@ -208,8 +208,9 @@ class CLI:
         )
 
     def view(self):
-        parser = argparse.ArgumentParser(description="View data from the stream.")
-        # args = parser.parse_args(sys.argv[2:])
         from .view import view
+
+        parser = argparse.ArgumentParser(description="View data from the stream.")
+        args = parser.parse_args(sys.argv[2:])
 
         view()

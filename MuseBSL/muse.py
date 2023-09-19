@@ -11,7 +11,7 @@ from .constants import *
 
 
 class Muse:
-    """Muse 2016 headband"""
+    """Muse EEG headband"""
 
     def __init__(
         self,
@@ -66,51 +66,46 @@ class Muse:
     def connect(self, interface=None):
         """Connect to the device"""
         try:
-            if self.backend == "bluemuse":
-                print("Starting BlueMuse.")
-                subprocess.call("start bluemuse:", shell=True)
-                self.last_timestamp = self.time_func()
+            print(
+                "Connecting to %s: %s..."
+                % (self.name if self.name else "Muse", self.address)
+            )
+            if self.backend == "gatt":
+                self.interface = self.interface or "hci0"
+                self.adapter = pygatt.GATTToolBackend(self.interface)
+            elif self.backend == "bleak":
+                self.adapter = backends.BleakBackend()
             else:
-                print(
-                    "Connecting to %s: %s..."
-                    % (self.name if self.name else "Muse", self.address)
-                )
-                if self.backend == "gatt":
-                    self.interface = self.interface or "hci0"
-                    self.adapter = pygatt.GATTToolBackend(self.interface)
-                elif self.backend == "bleak":
-                    self.adapter = backends.BleakBackend()
-                else:
-                    self.adapter = pygatt.BGAPIBackend(serial_port=self.interface)
+                self.adapter = pygatt.BGAPIBackend(serial_port=self.interface)
 
-                self.adapter.start()
-                self.device = self.adapter.connect(self.address)
-                if self.preset != None:
-                    self.select_preset(self.preset)
+            self.adapter.start()
+            self.device = self.adapter.connect(self.address)
+            if self.preset != None:
+                self.select_preset(self.preset)
 
-                # subscribes to EEG stream
-                if self.enable_eeg:
-                    self._subscribe_eeg()
+            # subscribes to EEG stream
+            if self.enable_eeg:
+                self._subscribe_eeg()
 
-                if self.enable_control:
-                    self._subscribe_control()
+            if self.enable_control:
+                self._subscribe_control()
 
-                if self.enable_telemetry:
-                    self._subscribe_telemetry()
+            if self.enable_telemetry:
+                self._subscribe_telemetry()
 
-                if self.enable_acc:
-                    self._subscribe_acc()
+            if self.enable_acc:
+                self._subscribe_acc()
 
-                if self.enable_gyro:
-                    self._subscribe_gyro()
+            if self.enable_gyro:
+                self._subscribe_gyro()
 
-                if self.enable_ppg:
-                    self._subscribe_ppg()
+            if self.enable_ppg:
+                self._subscribe_ppg()
 
-                if self.disable_light:
-                    self._disable_light()
+            if self.disable_light:
+                self._disable_light()
 
-                self.last_timestamp = self.time_func()
+            self.last_timestamp = self.time_func()
 
             return True
 

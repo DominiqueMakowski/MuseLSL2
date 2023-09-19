@@ -10,7 +10,6 @@ from pylsl import StreamInfo, StreamOutlet
 
 from . import backends, helper
 from .constants import (
-    AUTO_DISCONNECT_DELAY,
     LSL_ACC_CHUNK,
     LSL_EEG_CHUNK,
     LSL_GYRO_CHUNK,
@@ -23,7 +22,6 @@ from .constants import (
     MUSE_SAMPLING_EEG_RATE,
     MUSE_SAMPLING_GYRO_RATE,
     MUSE_SAMPLING_PPG_RATE,
-    MUSE_SCAN_TIMEOUT,
 )
 from .muse import Muse
 
@@ -31,47 +29,40 @@ from .muse import Muse
 # Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
 def stream(
     address,
-    backend="auto",
     interface=None,
     name=None,
     ppg_enabled=False,
     acc_enabled=False,
     gyro_enabled=False,
-    eeg_disabled=False,
     preset=None,
     disable_light=False,
-    timeout=AUTO_DISCONNECT_DELAY,
+    timeout=3,
 ):
-    # If no data types are enabled, we warn the user and return immediately.
-    if eeg_disabled and not ppg_enabled and not acc_enabled and not gyro_enabled:
-        print("Stream initiation failed: At least one data source must be enabled.")
-        return
-
     if not address:
         from .find import find_devices
 
-        device = find_devices(max_duration=5, verbose=True)[0]
+        device = find_devices(max_duration=6, verbose=True)[0]
         address = device["address"]
         name = device["name"]
 
-    if not eeg_disabled:
-        eeg_info = StreamInfo(
-            "Muse",
-            "EEG",
-            MUSE_NB_EEG_CHANNELS,
-            MUSE_SAMPLING_EEG_RATE,
-            "float32",
-            "Muse%s" % address,
-        )
-        eeg_info.desc().append_child_value("manufacturer", "Muse")
-        eeg_channels = eeg_info.desc().append_child("channels")
+    # EEG stream
+    eeg_info = StreamInfo(
+        "Muse",
+        "EEG",
+        MUSE_NB_EEG_CHANNELS,
+        MUSE_SAMPLING_EEG_RATE,
+        "float32",
+        "Muse%s" % address,
+    )
+    eeg_info.desc().append_child_value("manufacturer", "Muse")
+    eeg_channels = eeg_info.desc().append_child("channels")
 
-        for c in ["TP9", "AF7", "AF8", "TP10", "Right AUX"]:
-            eeg_channels.append_child("channel").append_child_value(
-                "label", c
-            ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
+    for c in ["TP9", "AF7", "AF8", "TP10", "Right AUX"]:
+        eeg_channels.append_child("channel").append_child_value(
+            "label", c
+        ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
 
-        eeg_outlet = StreamOutlet(eeg_info, LSL_EEG_CHUNK)
+    eeg_outlet = StreamOutlet(eeg_info, LSL_EEG_CHUNK)
 
     if ppg_enabled:
         ppg_info = StreamInfo(
@@ -147,7 +138,6 @@ def stream(
         callback_ppg=push_ppg,
         callback_acc=push_acc,
         callback_gyro=push_gyro,
-        backend=backend,
         interface=interface,
         name=name,
         preset=preset,
@@ -160,16 +150,15 @@ def stream(
         print("Connected.")
         muse.start()
 
-        eeg_string = " EEG" if not eeg_disabled else ""
-        ppg_string = " PPG" if ppg_enabled else ""
-        acc_string = " ACC" if acc_enabled else ""
-        gyro_string = " GYRO" if gyro_enabled else ""
+        ppg_string = ", PPG" if ppg_enabled else ""
+        acc_string = ", ACC" if acc_enabled else ""
+        gyro_string = ", GYRO" if gyro_enabled else ""
 
         print(
-            f"Streaming... {eeg_string, ppg_string, acc_string, gyro_string}... (CTRL + C to interrupt)"
+            f"Streaming EEG{ppg_string}{acc_string}{gyro_string}... (CTRL + C to interrupt)"
         )
 
-        while time.time() - muse.last_timestamp < timeout:
+        while time.time() - muse.last_timestamp < 3:
             try:
                 time.sleep(1)  # wait 1 seconds
             except KeyboardInterrupt:
@@ -177,4 +166,5 @@ def stream(
                 print("Stream interrupted. Stopping...")
                 break
 
+        print(f"Time is {time.time()}. Last timestamp is {muse.last_timestamp}")
         print("Disconnected.")

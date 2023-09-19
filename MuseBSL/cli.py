@@ -34,14 +34,6 @@ class CLI:
             help="Name of the device.",
         )
         parser.add_argument(
-            "-b",
-            "--backend",
-            dest="backend",
-            type=str,
-            default="auto",
-            help="BLE backend to use. Can be auto, bluemuse, gatt or bgapi.",
-        )
-        parser.add_argument(
             "-i",
             "--interface",
             dest="interface",
@@ -74,13 +66,6 @@ class CLI:
             help="Include gyroscope data",
         )
         parser.add_argument(
-            "-d",
-            "--disable-eeg",
-            dest="disable_eeg",
-            action="store_true",
-            help="Disable EEG data",
-        )
-        parser.add_argument(
             "-dl",
             "--disable-light",
             dest="disable_light",
@@ -93,13 +78,11 @@ class CLI:
 
         stream(
             args.address,
-            args.backend,
             args.interface,
             args.name,
             args.ppg,
             args.acc,
             args.gyro,
-            args.disable_eeg,
             args.preset,
             args.disable_light,
         )

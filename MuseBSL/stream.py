@@ -34,7 +34,6 @@ def stream(
     ppg_enabled=False,
     acc_enabled=False,
     gyro_enabled=False,
-    preset=None,
     disable_light=False,
     timeout=AUTO_DISCONNECT_DELAY,
 ):
@@ -137,9 +136,7 @@ def stream(
         callback_ppg=push_ppg,
         callback_acc=push_acc,
         callback_gyro=push_gyro,
-        interface=interface,
         name=name,
-        preset=preset,
         disable_light=disable_light,
     )
 

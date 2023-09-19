@@ -21,7 +21,6 @@ class Muse:
         callback_acc=None,
         callback_gyro=None,
         callback_ppg=None,
-        interface=None,
         time_func=time,
         name=None,
         preset=None,
@@ -55,13 +54,12 @@ class Muse:
         self.enable_gyro = not callback_gyro is None
         self.enable_ppg = not callback_ppg is None
 
-        self.interface = interface
         self.time_func = time_func
         self.backend = "bleak"
         self.preset = preset
         self.disable_light = disable_light
 
-    def connect(self, interface=None):
+    def connect(self):
         """Connect to the device"""
 
         print(

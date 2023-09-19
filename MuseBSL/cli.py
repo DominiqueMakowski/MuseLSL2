@@ -34,21 +34,6 @@ class CLI:
             help="Name of the device.",
         )
         parser.add_argument(
-            "-i",
-            "--interface",
-            dest="interface",
-            type=str,
-            default=None,
-            help="The interface to use, 'hci0' for gatt or a com port for bgapi.",
-        )
-        parser.add_argument(
-            "-P",
-            "--preset",
-            type=int,
-            default=None,
-            help="Select preset which dictates data channels to be streamed",
-        )
-        parser.add_argument(
             "-p", "--ppg", default=False, action="store_true", help="Include PPG data"
         )
         parser.add_argument(
@@ -78,12 +63,10 @@ class CLI:
 
         stream(
             args.address,
-            args.interface,
             args.name,
             args.ppg,
             args.acc,
             args.gyro,
-            args.preset,
             args.disable_light,
         )
 

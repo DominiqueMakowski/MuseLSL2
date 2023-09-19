@@ -14,6 +14,6 @@ def find_devices(max_duration=10, verbose=True):
         for m in muses:
             print(f'Found device {m["name"]}, MAC Address {m["address"]}')
         if not muses:
-            print("No Muses found, make sure it's connected.")
-
+            # print("No Muses found, make sure it's connected.")
+            raise ConnectionError("No Muses found, make sure it's connected.")
     return muses

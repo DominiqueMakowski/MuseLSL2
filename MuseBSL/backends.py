@@ -10,10 +10,6 @@ def _wait(coroutine):
     return loop.run_until_complete(coroutine)
 
 
-def sleep(seconds):
-    time.sleep(seconds)
-
-
 class BleakBackend:
     def __init__(self):
         self.connected = set()

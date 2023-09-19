@@ -137,7 +137,6 @@ def stream(
         callback_ppg=push_ppg,
         callback_acc=push_acc,
         callback_gyro=push_gyro,
-        backend=backend,
         interface=interface,
         name=name,
         preset=preset,

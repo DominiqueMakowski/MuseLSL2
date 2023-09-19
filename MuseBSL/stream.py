@@ -127,7 +127,7 @@ def stream(
         for ii in range(data.shape[1]):
             outlet.push_sample(data[:, ii], timestamps[ii])
 
-    push_eeg = partial(push, outlet=eeg_outlet) if not eeg_disabled else None
+    push_eeg = partial(push, outlet=eeg_outlet)
     push_ppg = partial(push, outlet=ppg_outlet) if ppg_enabled else None
     push_acc = partial(push, outlet=acc_outlet) if acc_enabled else None
     push_gyro = partial(push, outlet=gyro_outlet) if gyro_enabled else None

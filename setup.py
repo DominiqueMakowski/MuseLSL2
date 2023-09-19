@@ -14,6 +14,9 @@ setup(
         "bitstring",  # For decoding Muse packets
         "bsl",  # Brain Streaming Layer (replaces lsl)
         "numpy",
+        # Visualization
+        "seaborn",
+        "vispy",
     ],
     packages=find_packages(),
 )

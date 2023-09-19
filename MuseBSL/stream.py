@@ -156,7 +156,7 @@ def stream(
 
         while time.time() - muse.last_timestamp < timeout:
             try:
-                time.sleep(1)
+                backends.sleep(1)
             except KeyboardInterrupt:
                 muse.stop()
                 print("Stream interrupted. Stopping...")

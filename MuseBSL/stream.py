@@ -1,9 +1,9 @@
 import re
 import subprocess
+import time
 from functools import partial
 from shutil import which
 from sys import platform
-from time import time
 
 import pygatt
 from pylsl import StreamInfo, StreamOutlet
@@ -169,7 +169,7 @@ def stream(
             f"Streaming... {eeg_string, ppg_string, acc_string, gyro_string}... (CTRL + C to interrupt)"
         )
 
-        while time() - muse.last_timestamp < timeout:
+        while time.time() - muse.last_timestamp < timeout:
             try:
                 time.sleep(1)  # wait 1 seconds
             except KeyboardInterrupt:

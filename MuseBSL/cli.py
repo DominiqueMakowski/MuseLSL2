@@ -105,14 +105,11 @@ class CLI:
         )
 
     def view(self):
-        print("yo!")
-        from .view import view
+        from . import view
 
-        # view()
+        view.view()
 
-    def view2(self):
-        print("yay!")
-        from .view import view
+        # from .view import view
 
         # view()
 

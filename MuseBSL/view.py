@@ -151,7 +151,7 @@ class Canvas(app.Canvas):
         self.font_size = 48.0
         self.names = []
         self.quality = []
-        for channel in info["n_samples"]:
+        for channel in info["ch_names"]:
             text = visuals.TextVisual(channel, bold=True, color="white")
             self.names.append(text)
             text = visuals.TextVisual("", bold=True, color="white")
@@ -174,9 +174,10 @@ class Canvas(app.Canvas):
 
         self.scale = scale
         self.n_samples = info["n_samples"]
+        self.n_channels = info["n_channels"]
         self.af = [1.0]
 
-        self.data = np.zeros((info["n_samples"], self.n_channels))
+        self.data = np.zeros((info["n_samples"], info["n_channels"]))
 
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)

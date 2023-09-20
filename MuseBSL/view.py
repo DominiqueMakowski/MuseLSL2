@@ -73,57 +73,34 @@ void main() {
 def view():
     print("Looking for a stream...")
     eeg = bsl.lsl.resolve_streams(stype="EEG", timeout=5)
+    ppg = bsl.lsl.resolve_streams(stype="PPG", timeout=5)
 
     if len(eeg) == 0:
-        raise (RuntimeError("Can't find EEG stream."))
+        raise RuntimeError("Can't find EEG stream.")
+    else:
+        eeg = bsl.lsl.StreamInlet(eeg[0])
+    if len(ppg) == 0:
+        ppg = None
+    else:
+        ppg = bsl.lsl.StreamInlet(ppg[0])
+
     print("Start acquiring data.")
 
-    inlet = bsl.lsl.StreamInlet(eeg[0])
-    Canvas(inlet)
+    Canvas(eeg=eeg, ppg=ppg)
     app.run()
 
 
-def _view_info(inlet):
-    # Get info from stream
-    inlet.open_stream()
-
-    info = {}  # Initialize a container
-    info["info"] = inlet.get_sinfo()
-    info["description"] = info["info"].desc
-
-    info["window"] = 10  # 10-second window showing the data.
-    info["sfreq"] = info["info"].sfreq
-    info["n_samples"] = int(info["sfreq"] * info["window"])
-    info["ch_names"] = info["info"].get_channel_names()
-    info["n_channels"] = len(info["ch_names"])
-    info["inlet"] = inlet
-    return info
-
-
 class Canvas(app.Canvas):
-    def __init__(self, inlet, scale=500):
+    def __init__(self, eeg, ppg=None, scale=500):
         app.Canvas.__init__(
             self, title="Muse - Use your wheel to zoom!", keys="interactive"
         )
 
         # Get info from stream
-        info = _view_info(inlet)
-
-        # Number of cols and rows in the table.
-        n_rows = info["n_channels"]
-        n_cols = 1
-
-        # Number of signals.
-        m = n_rows * n_cols
-
-        # Number of samples per signal.
-        n = info["n_samples"]
-
-        # Various signal amplitudes.
-        amplitudes = np.zeros((m, n)).astype(np.float32)
+        eeg_info = _view_info(eeg)
 
         # Channel colors
-        color = [
+        colors = [
             (255 / 255, 87 / 255, 34 / 255),  # Orange
             (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
             (33 / 255, 150 / 255, 243 / 255),  # Dark blue
@@ -131,34 +108,54 @@ class Canvas(app.Canvas):
             (142 / 255, 39 / 255, 176 / 255),  # Purple
         ]
 
-        color = np.repeat(color, n, axis=0).astype(np.float32)
+        if ppg is not None:
+            ppg_info = _view_info(ppg)
+            colors += [
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+            ]
+
+        # Number of cols and rows in the table.
+        n_rows = len(colors)
+        n_cols = 1
+
+        # Initialize signal amplitudes.
+        amplitudes = np.zeros((n_rows, eeg_info["n_samples"])).astype(np.float32)
+
+        colors = np.repeat(colors, eeg_info["n_samples"], axis=0).astype(np.float32)
         # Signal 2D index of each vertex (row and col) and x-index (sample index
         # within each signal).
         index = np.c_[
-            np.repeat(np.repeat(np.arange(n_cols), n_rows), n),
-            np.repeat(np.tile(np.arange(n_rows), n_cols), n),
-            np.tile(np.arange(n), m),
+            np.repeat(np.repeat(np.arange(n_cols), n_rows), eeg_info["n_samples"]),
+            np.repeat(np.tile(np.arange(n_rows), n_cols), eeg_info["n_samples"]),
+            np.tile(np.arange(eeg_info["n_samples"]), n_rows),
         ].astype(np.float32)
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program["a_position"] = amplitudes.reshape(-1, 1)
-        self.program["a_color"] = color
+        self.program["a_color"] = colors
         self.program["a_index"] = index
         self.program["u_scale"] = (1.0, 1.0)
         self.program["u_size"] = (n_rows, n_cols)
-        self.program["u_n"] = n
+        self.program["u_n"] = eeg_info["n_samples"]
 
-        # text
+        # Text
         self.font_size = 48.0
-        self.names = []
-        self.quality = []
-        for channel in info["ch_names"]:
+        self.display_names = []
+        self.display_quality = []
+        for channel in eeg_info["ch_names"]:
             text = visuals.TextVisual(channel, bold=True, color="white")
-            self.names.append(text)
+            self.display_names.append(text)
             text = visuals.TextVisual("", bold=True, color="white")
-            self.quality.append(text)
+            self.display_quality.append(text)
 
-        # A rounding of: sns.color_palette("RdYlGn", 11)[::-1]
+        # # A rounding of: sns.color_palette("RdYlGn", 11)[::-1]
+        # import seaborn as sns
+        # sns.color_palette("RdYlGn", 11)[::-1]
+        # import matplotlib.colors
+        # plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))
+
         self.quality_colors = [
             (0.08, 0.56, 0.3),
             (0.29, 0.69, 0.36),
@@ -174,13 +171,13 @@ class Canvas(app.Canvas):
         ]
 
         self.scale = scale
-        self.inlet = info["inlet"]
-        self.n_samples = info["n_samples"]
-        self.n_channels = info["n_channels"]
-        self.sfreq = info["sfreq"]
+        self.eeg = eeg_info["inlet"]
+        self.n_samples = eeg_info["n_samples"]
+        self.n_channels = eeg_info["n_channels"]
+        self.sfreq = eeg_info["sfreq"]
         self.af = [1.0]
 
-        self.data = np.zeros((info["n_samples"], info["n_channels"]))
+        self.data = np.zeros((eeg_info["n_samples"], eeg_info["n_channels"]))
 
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
@@ -191,6 +188,33 @@ class Canvas(app.Canvas):
         )
 
         self.show()
+
+    def on_timer(self, event):
+        """Add some data at the end of each signal (real-time signals)."""
+
+        samples, timestamps = self.eeg.pull_chunk(timeout=0.0, max_samples=100)
+        samples = np.array(samples)[:, ::-1]  # Reverse (newest on the right)
+
+        self.data = np.vstack([self.data, samples])
+        self.data = self.data[-self.n_samples :]
+
+        # Normalize
+        plot_data = (self.data - self.data.mean(axis=0)) / self.scale
+
+        # Impedence
+        sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
+        co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
+
+        for i in range(self.n_channels):
+            self.display_quality[i].text = f"{sd[i]:.2f}"
+            self.display_quality[i].color = self.quality_colors[co[i]]
+            self.display_quality[i].font_size = 12 + co[i]
+
+            self.display_names[i].font_size = 12 + co[i]
+            self.display_names[i].color = self.quality_colors[co[i]]
+
+        self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
+        self.update()
 
     def on_key_press(self, event):
         # increase time scale
@@ -217,46 +241,19 @@ class Canvas(app.Canvas):
         self.program["u_scale"] = (max(1, scale_x_new), max(0.01, scale_y_new))
         self.update()
 
-    def on_timer(self, event):
-        """Add some data at the end of each signal (real-time signals)."""
-
-        samples, timestamps = self.inlet.pull_chunk(timeout=0.0, max_samples=100)
-
-        samples = np.array(samples)[:, ::-1]
-
-        self.data = np.vstack([self.data, samples])
-        self.data = self.data[-self.n_samples :]
-
-        plot_data = (self.data - self.data.mean(axis=0)) / self.scale
-
-        # Impedence
-        sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
-        co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
-
-        for ii in range(self.n_channels):
-            self.quality[ii].text = "%.2f" % (sd[ii])
-            self.quality[ii].color = self.quality_colors[co[ii]]
-            self.quality[ii].font_size = 12 + co[ii]
-
-            self.names[ii].font_size = 12 + co[ii]
-            self.names[ii].color = self.quality_colors[co[ii]]
-
-        self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
-        self.update()
-
     def on_resize(self, event):
         # Set canvas viewport and reconfigure visual transforms to match.
         vp = (0, 0, self.physical_size[0], self.physical_size[1])
         self.context.set_viewport(*vp)
 
-        for ii, t in enumerate(self.names):
+        for ii, t in enumerate(self.display_names):
             t.transforms.configure(canvas=self, viewport=vp)
             t.pos = (
                 self.size[0] * 0.025,
                 ((ii + 0.5) / self.n_channels) * self.size[1],
             )
 
-        for ii, t in enumerate(self.quality):
+        for ii, t in enumerate(self.display_quality):
             t.transforms.configure(canvas=self, viewport=vp)
             t.pos = (
                 self.size[0] * 0.975,
@@ -267,4 +264,21 @@ class Canvas(app.Canvas):
         gloo.clear()
         gloo.set_viewport(0, 0, *self.physical_size)
         self.program.draw("line_strip")
-        [t.draw() for t in self.names + self.quality]
+        [t.draw() for t in self.display_names + self.display_quality]
+
+
+def _view_info(inlet):
+    """Get info from stream"""
+    inlet.open_stream()
+
+    info = {}  # Initialize a container
+    info["info"] = inlet.get_sinfo()
+    info["description"] = info["info"].desc
+
+    info["window"] = 10  # 10-second window showing the data.
+    info["sfreq"] = info["info"].sfreq
+    info["n_samples"] = int(info["sfreq"] * info["window"])
+    info["ch_names"] = info["info"].get_channel_names()
+    info["n_channels"] = len(info["ch_names"])
+    info["inlet"] = inlet
+    return info

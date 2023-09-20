@@ -78,7 +78,7 @@ def view():
         raise (RuntimeError("Can't find EEG stream."))
     print("Start acquiring data.")
 
-    inlet = bsl.lsl.StreamInlet(eeg)
+    inlet = bsl.lsl.StreamInlet(eeg[0])
     Canvas(inlet)
     app.run()
 

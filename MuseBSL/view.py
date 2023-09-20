@@ -83,50 +83,45 @@ def view():
     app.run()
 
 
+def _view_info(inlet):
+    # Get info from stream
+    inlet.open_stream()
+
+    info = {}  # Initialize a container
+    info["info"] = inlet.get_sinfo()
+    info["description"] = info["info"].desc
+
+    info["window"] = 10  # 10-second window showing the data.
+    info["n_samples"] = int(info["info"].sfreq * info["window"])
+    info["ch_names"] = info["info"].get_channel_names()
+    info["n_channels"] = len(info["ch_names"])
+    info["inlet"] = inlet
+    return info
+
+
 class Canvas(app.Canvas):
     def __init__(self, inlet, scale=500):
         app.Canvas.__init__(
-            self, title="EEG - Use your wheel to zoom!", keys="interactive"
+            self, title="Muse - Use your wheel to zoom!", keys="interactive"
         )
 
         # Get info from stream
-        inlet.open_stream()
-        self.inlet = inlet
-        info = inlet.get_sinfo()
-        description = info.desc
-
-        window = 10  # 10-second window showing the data.
-        self.sfreq = info.sfreq
-        n_samples = int(info.sfreq * window)
-
-        # Get channel names
-        self.n_channels = info.n_channels
-        ch = description.child("channels").first_child()
-        ch_names = [ch.child_value("label")]
-        for i in range(1, info.n_channels):
-            ch = ch.next_sibling()
-            ch_names.append(ch.child_value("label"))
+        info = _view_info(inlet)
 
         # Number of cols and rows in the table.
-        n_rows = len(ch_names)
+        n_rows = info["n_channels"]
         n_cols = 1
 
         # Number of signals.
         m = n_rows * n_cols
 
         # Number of samples per signal.
-        n = n_samples
+        n = info["n_samples"]
 
         # Various signal amplitudes.
         amplitudes = np.zeros((m, n)).astype(np.float32)
-        # gamma = np.ones((m, n)).astype(np.float32)
-        # Generate the signals as a (m, n) array.
-        y = amplitudes
 
-        # color = sns.color_palette("RdBu_r", 5)  # n_rows = 5
-        # [tuple(np.round(x, 2)) for x in color]
-        # ["purple", "]
-        # matplotlib.colors.to_rgb("purple")
+        # Channel colors
         color = [
             (255 / 255, 87 / 255, 34 / 255),  # Orange
             (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
@@ -145,7 +140,7 @@ class Canvas(app.Canvas):
         ].astype(np.float32)
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
-        self.program["a_position"] = y.reshape(-1, 1)
+        self.program["a_position"] = amplitudes.reshape(-1, 1)
         self.program["a_color"] = color
         self.program["a_index"] = index
         self.program["u_scale"] = (1.0, 1.0)
@@ -156,7 +151,7 @@ class Canvas(app.Canvas):
         self.font_size = 48.0
         self.names = []
         self.quality = []
-        for channel in ch_names:
+        for channel in info["n_samples"]:
             text = visuals.TextVisual(channel, bold=True, color="white")
             self.names.append(text)
             text = visuals.TextVisual("", bold=True, color="white")
@@ -178,10 +173,10 @@ class Canvas(app.Canvas):
         ]
 
         self.scale = scale
-        self.n_samples = n_samples
+        self.n_samples = info["n_samples"]
         self.af = [1.0]
 
-        self.data = np.zeros((n_samples, self.n_channels))
+        self.data = np.zeros((info["n_samples"], self.n_channels))
 
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)

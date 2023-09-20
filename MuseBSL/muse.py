@@ -2,8 +2,8 @@ from sys import platform
 from time import sleep, time
 
 import bitstring
+import bsl.lsl
 import numpy as np
-import pylsl
 
 from .backends import BleakBackend
 from .constants import *
@@ -87,7 +87,7 @@ class Muse:
         if self.disable_light:
             self._disable_light()
 
-        self.last_timestamp = pylsl.local_clock()
+        self.last_timestamp = bsl.lsl.local_clock()
 
         return True
 
@@ -232,7 +232,7 @@ class Muse:
         self.sample_index = 0
         self.sample_index_ppg = 0
         self._P = 1e-4
-        t0 = pylsl.local_clock()
+        t0 = bsl.lsl.local_clock()
         self.reg_params = np.array([t0, 1.0 / MUSE_SAMPLING_EEG_RATE])
         self.reg_ppg_sample_rate = np.array([t0, 1.0 / MUSE_SAMPLING_PPG_RATE])
 
@@ -266,7 +266,7 @@ class Muse:
             self._init_timestamp_correction()
             self.first_sample = False
 
-        timestamp = pylsl.local_clock()
+        timestamp = bsl.lsl.local_clock()
         index = int((handle - 32) / 3)
         tm, d = self._unpack_eeg_channel(data)
 
@@ -368,7 +368,7 @@ class Muse:
 
         if handle != 26:  # handle 0x1a
             return
-        timestamp = pylsl.local_clock()
+        timestamp = bsl.lsl.local_clock()
 
         bit_decoder = bitstring.Bits(bytes=packet)
         pattern = "uint:16,uint:16,uint:16,uint:16,uint:16"  # The rest is 0 padding
@@ -408,7 +408,7 @@ class Muse:
         sampling rate: ~17 x second (3 samples in each message, roughly 50Hz)"""
         if handle != 23:  # handle 0x17
             return
-        timestamps = [pylsl.local_clock()] * 3
+        timestamps = [bsl.lsl.local_clock()] * 3
 
         # save last timestamp for disconnection timer
         self.last_timestamp = timestamps[-1]
@@ -452,7 +452,7 @@ class Muse:
         samples are received in this order : 56, 59, 62
         wait until we get x and call the data callback
         """
-        timestamp = pylsl.local_clock()
+        timestamp = bsl.lsl.local_clock()
         index = int((handle - 56) / 3)
         tm, d = self._unpack_ppg_channel(data)
 

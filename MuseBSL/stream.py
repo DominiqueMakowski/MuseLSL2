@@ -1,15 +1,12 @@
-import re
-import subprocess
-import time
 from functools import partial
 from shutil import which
 from sys import platform
 
+import bsl.lsl
 import pylsl
 
 from . import backends
 from .constants import (
-    AUTO_DISCONNECT_DELAY,
     LSL_ACC_CHUNK,
     LSL_EEG_CHUNK,
     LSL_GYRO_CHUNK,
@@ -33,7 +30,6 @@ def stream(
     acc_enabled=False,
     gyro_enabled=False,
     disable_light=False,
-    timeout=AUTO_DISCONNECT_DELAY,
 ):
     if not address:
         from .find import find_devices
@@ -150,7 +146,8 @@ def stream(
             f"Streaming... EEG{ppg_string}{acc_string}{gyro_string}... (CTRL + C to interrupt)"
         )
 
-        while pylsl.local_clock() - muse.last_timestamp < timeout:
+        # Disconnect if no data is received for 60 seconds
+        while bsl.lsl.local_clock() - muse.last_timestamp < 60:
             try:
                 backends.sleep(1)
             except KeyboardInterrupt:
@@ -158,4 +155,4 @@ def stream(
                 print("Stream interrupted. Stopping...")
                 break
 
-        print("Disconnected.")
+        print("No data received since 1 min. Disconnecting.")

@@ -108,6 +108,8 @@ class Canvas(app.Canvas):
             (3 / 255, 169 / 255, 244 / 255),  # Blue
             (142 / 255, 39 / 255, 176 / 255),  # Purple
         ]
+        # Colors for impedence
+        self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
         # if ppg is not None:
         #     ppg_info = _view_info(ppg)
@@ -151,33 +153,12 @@ class Canvas(app.Canvas):
             text = visuals.TextVisual("", bold=True, color="white")
             self.display_quality.append(text)
 
-        # # A rounding of: sns.color_palette("RdYlGn", 11)[::-1]
-        # import seaborn as sns
-        # sns.color_palette("RdYlGn", 11)[::-1]
-        # import matplotlib.colors
-        # plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))
-        self.quality_colors = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))
-
-        # self.quality_colors = [
-        #     (0.08, 0.56, 0.3),
-        #     (0.29, 0.69, 0.36),
-        #     (0.52, 0.79, 0.4),
-        #     (0.72, 0.88, 0.46),
-        #     (0.87, 0.95, 0.58),
-        #     (1.0, 1.0, 0.75),
-        #     (1.0, 0.9, 0.58),
-        #     (0.99, 0.75, 0.44),
-        #     (0.97, 0.56, 0.32),
-        #     (0.92, 0.34, 0.22),
-        #     (0.81, 0.16, 0.15),
-        # ]
-
         self.scale = scale
         self.eeg = eeg_info["inlet"]
         self.n_samples = eeg_info["n_samples"]
         self.n_channels = eeg_info["n_channels"]
         self.sfreq = eeg_info["sfreq"]
-        self.af = [1.0]
+        # self.af = [1.0]
 
         self.data = np.zeros((eeg_info["n_samples"], eeg_info["n_channels"]))
 
@@ -209,11 +190,11 @@ class Canvas(app.Canvas):
 
         for i in range(self.n_channels):
             self.display_quality[i].text = f"{sd[i]:.2f}"
-            self.display_quality[i].color = self.quality_colors[co[i]]
+            self.display_quality[i].color = self.colors_quality[co[i]]
             self.display_quality[i].font_size = 12 + co[i]
 
             self.display_names[i].font_size = 12 + co[i]
-            self.display_names[i].color = self.quality_colors[co[i]]
+            self.display_names[i].color = self.colors_quality[co[i]]
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

@@ -84,29 +84,30 @@ def view():
 
 
 class Canvas(app.Canvas):
-    def __init__(self, lsl_inlet, scale=500):
+    def __init__(self, inlet, scale=500):
         app.Canvas.__init__(
             self, title="EEG - Use your wheel to zoom!", keys="interactive"
         )
 
-        self.inlet = lsl_inlet
-        info = self.inlet.info()
-        description = info.desc()
+        # Get info from stream
+        self.inlet = inlet
+        info = inlet.get_sinfo()
+        description = info.desc
 
         window = 10  # 10-second window showing the data.
-        self.sfreq = info.nominal_srate()
-        n_samples = int(self.sfreq * window)
-        self.n_chans = info.channel_count()
+        self.sfreq = info.sfreq
+        n_samples = int(info.sfreq * window)
 
+        # Get channel names
+        self.n_channels = info.n_channels
         ch = description.child("channels").first_child()
         ch_names = [ch.child_value("label")]
-
-        for i in range(self.n_chans):
+        for i in range(1, info.n_channels):
             ch = ch.next_sibling()
             ch_names.append(ch.child_value("label"))
 
         # Number of cols and rows in the table.
-        n_rows = self.n_chans
+        n_rows = len(ch_names)
         n_cols = 1
 
         # Number of signals.
@@ -154,8 +155,8 @@ class Canvas(app.Canvas):
         self.font_size = 48.0
         self.names = []
         self.quality = []
-        for ii in range(self.n_chans):
-            text = visuals.TextVisual(ch_names[ii], bold=True, color="white")
+        for channel in ch_names:
+            text = visuals.TextVisual(channel, bold=True, color="white")
             self.names.append(text)
             text = visuals.TextVisual("", bold=True, color="white")
             self.quality.append(text)
@@ -179,7 +180,7 @@ class Canvas(app.Canvas):
         self.n_samples = n_samples
         self.af = [1.0]
 
-        self.data = np.zeros((n_samples, self.n_chans))
+        self.data = np.zeros((n_samples, self.n_channels))
 
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
@@ -232,7 +233,7 @@ class Canvas(app.Canvas):
             sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
             co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
 
-            for ii in range(self.n_chans):
+            for ii in range(self.n_channels):
                 self.quality[ii].text = "%.2f" % (sd[ii])
                 self.quality[ii].color = self.quality_colors[co[ii]]
                 self.quality[ii].font_size = 12 + co[ii]
@@ -250,11 +251,17 @@ class Canvas(app.Canvas):
 
         for ii, t in enumerate(self.names):
             t.transforms.configure(canvas=self, viewport=vp)
-            t.pos = (self.size[0] * 0.025, ((ii + 0.5) / self.n_chans) * self.size[1])
+            t.pos = (
+                self.size[0] * 0.025,
+                ((ii + 0.5) / self.n_channels) * self.size[1],
+            )
 
         for ii, t in enumerate(self.quality):
             t.transforms.configure(canvas=self, viewport=vp)
-            t.pos = (self.size[0] * 0.975, ((ii + 0.5) / self.n_chans) * self.size[1])
+            t.pos = (
+                self.size[0] * 0.975,
+                ((ii + 0.5) / self.n_channels) * self.size[1],
+            )
 
     def on_draw(self, event):
         gloo.clear()

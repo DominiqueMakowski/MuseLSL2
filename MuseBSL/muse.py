@@ -489,8 +489,8 @@ class Muse:
             self.last_tm_ppg = tm
 
             # calculate index of time samples
-            idxs = np.arange(0, LSL_PPG_CHUNK) + self.sample_index_ppg
-            self.sample_index_ppg += LSL_PPG_CHUNK
+            idxs = np.arange(0, 6) + self.sample_index_ppg
+            self.sample_index_ppg += 6
 
             # timestamps are extrapolated backwards based on sampling rate and current time
             timestamps = (

@@ -44,7 +44,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         ppg_info.desc.append_child_value("manufacturer", "Muse")
         # PPG data has three channels: ambient, infrared, red
         ppg_info.set_channel_names(["LUX", "PPG", "RED"])
-        ppg_info.set_channel_types(["ppg"] * 5)
+        ppg_info.set_channel_types(["ppg"] * 3)
         ppg_info.set_channel_units("mmHg")
 
         ppg_outlet = bsl.lsl.StreamOutlet(ppg_info, chunk_size=3)

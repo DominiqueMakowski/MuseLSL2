@@ -92,7 +92,8 @@ def _view_info(inlet):
     info["description"] = info["info"].desc
 
     info["window"] = 10  # 10-second window showing the data.
-    info["n_samples"] = int(info["info"].sfreq * info["window"])
+    info["sfreq"] = info["info"].sfreq
+    info["n_samples"] = int(info["sfreq"] * info["window"])
     info["ch_names"] = info["info"].get_channel_names()
     info["n_channels"] = len(info["ch_names"])
     info["inlet"] = inlet
@@ -176,6 +177,7 @@ class Canvas(app.Canvas):
         self.inlet = info["inlet"]
         self.n_samples = info["n_samples"]
         self.n_channels = info["n_channels"]
+        self.sfreq = info["sfreq"]
         self.af = [1.0]
 
         self.data = np.zeros((info["n_samples"], info["n_channels"]))

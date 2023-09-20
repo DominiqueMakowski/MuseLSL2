@@ -72,7 +72,7 @@ void main() {
 
 def view():
     print("Looking for a stream...")
-    eeg = bsl.lsl.resolve_stream(stype="EEG", timeout=5)
+    eeg = bsl.lsl.resolve_streams(stype="EEG", timeout=5)
 
     if len(eeg) == 0:
         raise (RuntimeError("Can't find EEG stream."))

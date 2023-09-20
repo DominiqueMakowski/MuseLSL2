@@ -158,7 +158,6 @@ class Canvas(app.Canvas):
         self.n_samples = eeg_info["n_samples"]
         self.n_channels = eeg_info["n_channels"]
         self.sfreq = eeg_info["sfreq"]
-        # self.af = [1.0]
 
         self.data = np.zeros((eeg_info["n_samples"], eeg_info["n_channels"]))
 
@@ -229,18 +228,18 @@ class Canvas(app.Canvas):
         vp = (0, 0, self.physical_size[0], self.physical_size[1])
         self.context.set_viewport(*vp)
 
-        for ii, t in enumerate(self.display_names):
+        for i, t in enumerate(self.display_names):
             t.transforms.configure(canvas=self, viewport=vp)
             t.pos = (
-                self.size[0] * 0.025,
-                ((ii + 0.5) / self.n_channels) * self.size[1],
+                self.size[0] * 0.075,
+                ((i + 0.5) / self.n_channels) * self.size[1],
             )
 
-        for ii, t in enumerate(self.display_quality):
+        for i, t in enumerate(self.display_quality):
             t.transforms.configure(canvas=self, viewport=vp)
             t.pos = (
                 self.size[0] * 0.975,
-                ((ii + 0.5) / self.n_channels) * self.size[1],
+                ((i + 0.5) / self.n_channels) * self.size[1],
             )
 
     def on_draw(self, event):

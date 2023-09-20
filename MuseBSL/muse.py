@@ -1,9 +1,9 @@
-import subprocess
 from sys import platform
 from time import sleep, time
 
 import bitstring
 import numpy as np
+import pylsl
 
 from .backends import BleakBackend
 from .constants import *
@@ -21,7 +21,6 @@ class Muse:
         callback_acc=None,
         callback_gyro=None,
         callback_ppg=None,
-        time_func=time,
         preset=None,
         disable_light=False,
     ):
@@ -52,7 +51,6 @@ class Muse:
         self.enable_gyro = not callback_gyro is None
         self.enable_ppg = not callback_ppg is None
 
-        self.time_func = time_func
         self.preset = preset
         self.disable_light = disable_light
 
@@ -89,7 +87,7 @@ class Muse:
         if self.disable_light:
             self._disable_light()
 
-        self.last_timestamp = self.time_func()
+        self.last_timestamp = pylsl.local_clock()
 
         return True
 
@@ -234,7 +232,7 @@ class Muse:
         self.sample_index = 0
         self.sample_index_ppg = 0
         self._P = 1e-4
-        t0 = self.time_func()
+        t0 = pylsl.local_clock()
         self.reg_params = np.array([t0, 1.0 / MUSE_SAMPLING_EEG_RATE])
         self.reg_ppg_sample_rate = np.array([t0, 1.0 / MUSE_SAMPLING_PPG_RATE])
 
@@ -268,7 +266,7 @@ class Muse:
             self._init_timestamp_correction()
             self.first_sample = False
 
-        timestamp = self.time_func()
+        timestamp = pylsl.local_clock()
         index = int((handle - 32) / 3)
         tm, d = self._unpack_eeg_channel(data)
 
@@ -370,7 +368,7 @@ class Muse:
 
         if handle != 26:  # handle 0x1a
             return
-        timestamp = self.time_func()
+        timestamp = pylsl.local_clock()
 
         bit_decoder = bitstring.Bits(bytes=packet)
         pattern = "uint:16,uint:16,uint:16,uint:16,uint:16"  # The rest is 0 padding
@@ -410,7 +408,7 @@ class Muse:
         sampling rate: ~17 x second (3 samples in each message, roughly 50Hz)"""
         if handle != 23:  # handle 0x17
             return
-        timestamps = [self.time_func()] * 3
+        timestamps = [pylsl.local_clock()] * 3
 
         # save last timestamp for disconnection timer
         self.last_timestamp = timestamps[-1]
@@ -454,7 +452,7 @@ class Muse:
         samples are received in this order : 56, 59, 62
         wait until we get x and call the data callback
         """
-        timestamp = self.time_func()
+        timestamp = pylsl.local_clock()
         index = int((handle - 56) / 3)
         tm, d = self._unpack_ppg_channel(data)
 

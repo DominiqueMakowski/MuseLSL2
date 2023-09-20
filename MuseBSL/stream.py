@@ -5,7 +5,7 @@ from functools import partial
 from shutil import which
 from sys import platform
 
-from pylsl import StreamInfo, StreamOutlet
+import pylsl
 
 from . import backends
 from .constants import (
@@ -41,7 +41,7 @@ def stream(
         device = find_devices(max_duration=10, verbose=True)[0]
         address = device["address"]
 
-    eeg_info = StreamInfo(
+    eeg_info = pylsl.StreamInfo(
         "Muse",
         "EEG",
         MUSE_NB_EEG_CHANNELS,
@@ -57,10 +57,10 @@ def stream(
             "label", c
         ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
 
-    eeg_outlet = StreamOutlet(eeg_info, LSL_EEG_CHUNK)
+    eeg_outlet = pylsl.StreamOutlet(eeg_info, LSL_EEG_CHUNK)
 
     if ppg is True:
-        ppg_info = StreamInfo(
+        ppg_info = pylsl.StreamInfo(
             "Muse",
             "PPG",
             MUSE_NB_PPG_CHANNELS,
@@ -76,10 +76,10 @@ def stream(
                 "label", c
             ).append_child_value("unit", "mmHg").append_child_value("type", "PPG")
 
-        ppg_outlet = StreamOutlet(ppg_info, LSL_PPG_CHUNK)
+        ppg_outlet = pylsl.StreamOutlet(ppg_info, LSL_PPG_CHUNK)
 
     if acc_enabled:
-        acc_info = StreamInfo(
+        acc_info = pylsl.StreamInfo(
             "Muse",
             "ACC",
             MUSE_NB_ACC_CHANNELS,
@@ -97,10 +97,10 @@ def stream(
                 "type", "accelerometer"
             )
 
-        acc_outlet = StreamOutlet(acc_info, LSL_ACC_CHUNK)
+        acc_outlet = pylsl.StreamOutlet(acc_info, LSL_ACC_CHUNK)
 
     if gyro_enabled:
-        gyro_info = StreamInfo(
+        gyro_info = pylsl.StreamInfo(
             "Muse",
             "GYRO",
             MUSE_NB_GYRO_CHANNELS,
@@ -116,7 +116,7 @@ def stream(
                 "label", c
             ).append_child_value("unit", "dps").append_child_value("type", "gyroscope")
 
-        gyro_outlet = StreamOutlet(gyro_info, LSL_GYRO_CHUNK)
+        gyro_outlet = pylsl.StreamOutlet(gyro_info, LSL_GYRO_CHUNK)
 
     def push(data, timestamps, outlet):
         for ii in range(data.shape[1]):
@@ -150,7 +150,7 @@ def stream(
             f"Streaming... EEG{ppg_string}{acc_string}{gyro_string}... (CTRL + C to interrupt)"
         )
 
-        while time.time() - muse.last_timestamp < timeout:
+        while pylsl.local_clock() - muse.last_timestamp < timeout:
             try:
                 backends.sleep(1)
             except KeyboardInterrupt:

@@ -124,7 +124,13 @@ class Canvas(app.Canvas):
         # Generate the signals as a (m, n) array.
         y = amplitudes
 
-        # color = color_palette("RdBu_r", n_rows)
+        # color = sns.color_palette("RdBu_r", n_rows)
+        color = [
+            (0.26, 0.58, 0.76),
+            (0.82, 0.9, 0.94),
+            (0.1, 0.86, 0.78),
+            (0.84, 0.38, 0.30),
+        ]
 
         color = np.repeat(color, n, axis=0).astype(np.float32)
         # Signal 2D index of each vertex (row and col) and x-index (sample index

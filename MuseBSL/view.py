@@ -126,11 +126,11 @@ class Canvas(app.Canvas):
         # ["purple", "]
         # matplotlib.colors.to_rgb("purple")
         color = [
-            (142 / 255, 39 / 255, 176 / 255),  # Purple
-            (3 / 255, 169 / 255, 244 / 255),  # Blue
-            (33 / 255, 150 / 255, 243 / 255),  # Dark blue
-            (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
             (255 / 255, 87 / 255, 34 / 255),  # Orange
+            (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
+            (33 / 255, 150 / 255, 243 / 255),  # Dark blue
+            (3 / 255, 169 / 255, 244 / 255),  # Blue
+            (142 / 255, 39 / 255, 176 / 255),  # Purple
         ]
 
         color = np.repeat(color, n, axis=0).astype(np.float32)
@@ -228,8 +228,10 @@ class Canvas(app.Canvas):
 
             plot_data = (self.data - self.data.mean(axis=0)) / self.scale
 
+            # Impedence
             sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
             co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
+
             for ii in range(self.n_chans):
                 self.quality[ii].text = "%.2f" % (sd[ii])
                 self.quality[ii].color = self.quality_colors[co[ii]]

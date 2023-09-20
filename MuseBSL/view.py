@@ -123,8 +123,8 @@ class Canvas(app.Canvas):
         n_rows = len(colors)
         n_cols = 1
 
-        # Initialize signal amplitudes.
-        amplitudes = np.zeros((n_rows, eeg_info["n_samples"])).astype(np.float32)
+        # Initialize data to zero
+        self.data = np.zeros((eeg_info["n_samples"], n_rows))
 
         colors = np.repeat(colors, eeg_info["n_samples"], axis=0).astype(np.float32)
         # Signal 2D index of each vertex (row and col) and x-index (sample index
@@ -136,9 +136,9 @@ class Canvas(app.Canvas):
         ].astype(np.float32)
 
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
-        self.program["a_position"] = amplitudes.reshape(-1, 1)
-        self.program["a_color"] = colors
+        self.program["a_position"] = self.data.T.astype(np.float32).reshape(-1, 1)
         self.program["a_index"] = index
+        self.program["a_color"] = colors
         self.program["u_scale"] = (1.0, 1.0)
         self.program["u_size"] = (n_rows, n_cols)
         self.program["u_n"] = eeg_info["n_samples"]
@@ -159,8 +159,6 @@ class Canvas(app.Canvas):
         self.n_channels = eeg_info["n_channels"]
         self.sfreq = eeg_info["sfreq"]
 
-        self.data = np.zeros((eeg_info["n_samples"], eeg_info["n_channels"]))
-
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
         gloo.set_state(
@@ -174,11 +172,11 @@ class Canvas(app.Canvas):
     def on_timer(self, event):
         """Add some data at the end of each signal (real-time signals)."""
 
-        samples, timestamps = self.eeg.pull_chunk(timeout=0.0, max_samples=100)
-        samples = np.array(samples)[:, ::-1]  # Reverse (newest on the right)
+        eeg_samples, timestamps = self.eeg.pull_chunk(timeout=0.0, max_samples=100)
+        eeg_samples = np.array(eeg_samples)[:, ::-1]  # Reverse (newest on the right)
 
-        self.data = np.vstack([self.data, samples])
-        self.data = self.data[-self.n_samples :]
+        self.data = np.vstack([self.data, samples])  # Concat
+        self.data = self.data[-self.n_samples :]  #
 
         # Normalize
         plot_data = (self.data - self.data.mean(axis=0)) / self.scale
@@ -228,6 +226,7 @@ class Canvas(app.Canvas):
         vp = (0, 0, self.physical_size[0], self.physical_size[1])
         self.context.set_viewport(*vp)
 
+        # Text position
         for i, t in enumerate(self.display_names):
             t.transforms.configure(canvas=self, viewport=vp)
             t.pos = (
@@ -238,7 +237,7 @@ class Canvas(app.Canvas):
         for i, t in enumerate(self.display_quality):
             t.transforms.configure(canvas=self, viewport=vp)
             t.pos = (
-                self.size[0] * 0.975,
+                self.size[0] * 0.925,
                 ((i + 0.5) / self.n_channels) * self.size[1],
             )
 

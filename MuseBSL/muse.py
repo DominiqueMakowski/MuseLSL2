@@ -10,7 +10,7 @@ from .constants import *
 
 
 class Muse:
-    """Muse 2016 headband"""
+    """Muse EEG headband"""
 
     def __init__(
         self,

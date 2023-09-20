@@ -10,13 +10,11 @@ setup(
     url="https://github.com/DominiqueMakowski/MuseBSL",
     entry_points={"console_scripts": ["MuseBSL=MuseBSL.__main__:main"]},
     install_requires=[
+        "numpy",
         "bleak",  # Bluetooth backend
         "bitstring",  # For decoding Muse packets
         "bsl",  # Brain Streaming Layer (replaces lsl)
-        "numpy",
-        # Visualization
-        "seaborn",
-        "vispy",
+        "vispy",  # Visualization
     ],
     packages=find_packages(),
 )

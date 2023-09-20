@@ -1,24 +1,8 @@
 from functools import partial
-from shutil import which
-from sys import platform
 
 import bsl.lsl
 
 from . import backends
-from .constants import (
-    LSL_ACC_CHUNK,
-    LSL_EEG_CHUNK,
-    LSL_GYRO_CHUNK,
-    LSL_PPG_CHUNK,
-    MUSE_NB_ACC_CHANNELS,
-    MUSE_NB_EEG_CHANNELS,
-    MUSE_NB_GYRO_CHANNELS,
-    MUSE_NB_PPG_CHANNELS,
-    MUSE_SAMPLING_ACC_RATE,
-    MUSE_SAMPLING_EEG_RATE,
-    MUSE_SAMPLING_GYRO_RATE,
-    MUSE_SAMPLING_PPG_RATE,
-)
 from .muse import Muse
 
 
@@ -39,10 +23,10 @@ def stream(
     eeg_info = bsl.lsl.StreamInfo(
         "Muse",
         "EEG",
-        MUSE_NB_EEG_CHANNELS,
-        MUSE_SAMPLING_EEG_RATE,
-        "float32",
-        "Muse%s" % address,
+        n_channels=5,
+        sfreq=256,
+        dtype="float32",
+        source_id="Muse%s" % address,
     )
     eeg_info.desc.append_child_value("manufacturer", "Muse")
     eeg_channels = eeg_info.desc.append_child("channels")
@@ -52,66 +36,67 @@ def stream(
             "label", c
         ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
 
-    eeg_outlet = bsl.lsl.StreamOutlet(eeg_info, LSL_EEG_CHUNK)
+    eeg_outlet = bsl.lsl.StreamOutlet(eeg_info, chunk_size=12)
 
     if ppg is True:
         ppg_info = bsl.lsl.StreamInfo(
             "Muse",
             "PPG",
-            MUSE_NB_PPG_CHANNELS,
-            MUSE_SAMPLING_PPG_RATE,
-            "float32",
-            "Muse%s" % address,
+            n_channels=3,
+            sfreq=64,
+            dtype="float32",
+            source_id="Muse%s" % address,
         )
         ppg_info.desc.append_child_value("manufacturer", "Muse")
         ppg_channels = ppg_info.desc.append_child("channels")
 
-        for c in ["PPG1", "PPG2", "PPG3"]:
+        # PPG data has three channels: ambient, infrared, red
+        for c in ["LUX", "PPG", "RED"]:
             ppg_channels.append_child("channel").append_child_value(
                 "label", c
             ).append_child_value("unit", "mmHg").append_child_value("type", "PPG")
 
-        ppg_outlet = bsl.lsl.StreamOutlet(ppg_info, LSL_PPG_CHUNK)
+        ppg_outlet = bsl.lsl.StreamOutlet(ppg_info, chunk_size=6)
 
     if acc_enabled:
         acc_info = bsl.lsl.StreamInfo(
             "Muse",
             "ACC",
-            MUSE_NB_ACC_CHANNELS,
-            MUSE_SAMPLING_ACC_RATE,
-            "float32",
-            "Muse%s" % address,
+            n_channels=3,
+            sfreq=52,
+            dtype="float32",
+            source_id="Muse%s" % address,
         )
         acc_info.desc.append_child_value("manufacturer", "Muse")
         acc_channels = acc_info.desc.append_child("channels")
 
-        for c in ["X", "Y", "Z"]:
+        for c in ["ACC_X", "ACC_Y", "ACC_Z"]:
             acc_channels.append_child("channel").append_child_value(
                 "label", c
             ).append_child_value("unit", "g").append_child_value(
                 "type", "accelerometer"
             )
 
-        acc_outlet = bsl.lsl.StreamOutlet(acc_info, LSL_ACC_CHUNK)
+        acc_outlet = bsl.lsl.StreamOutlet(acc_info, chunk_size=1)
 
     if gyro_enabled:
         gyro_info = bsl.lsl.StreamInfo(
             "Muse",
             "GYRO",
-            MUSE_NB_GYRO_CHANNELS,
-            MUSE_SAMPLING_GYRO_RATE,
-            "float32",
-            "Muse%s" % address,
+            n_channels=3,
+            sfreq=52,
+            dtype="float32",
+            source_id="Muse%s" % address,
         )
         gyro_info.desc.append_child_value("manufacturer", "Muse")
         gyro_channels = gyro_info.desc.append_child("channels")
 
-        for c in ["X", "Y", "Z"]:
+        for c in ["GYRO_X", "GYRO_Y", "GYRO_Z"]:
             gyro_channels.append_child("channel").append_child_value(
                 "label", c
             ).append_child_value("unit", "dps").append_child_value("type", "gyroscope")
 
-        gyro_outlet = bsl.lsl.StreamOutlet(gyro_info, LSL_GYRO_CHUNK)
+        gyro_outlet = bsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
 
     def push(data, timestamps, outlet):
         for ii in range(data.shape[1]):

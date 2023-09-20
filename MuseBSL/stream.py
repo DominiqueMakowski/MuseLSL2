@@ -44,8 +44,8 @@ def stream(
         "float32",
         "Muse%s" % address,
     )
-    eeg_info.desc().append_child_value("manufacturer", "Muse")
-    eeg_channels = eeg_info.desc().append_child("channels")
+    eeg_info.desc.append_child_value("manufacturer", "Muse")
+    eeg_channels = eeg_info.desc.append_child("channels")
 
     for c in ["TP9", "AF7", "AF8", "TP10", "Right AUX"]:
         eeg_channels.append_child("channel").append_child_value(
@@ -63,8 +63,8 @@ def stream(
             "float32",
             "Muse%s" % address,
         )
-        ppg_info.desc().append_child_value("manufacturer", "Muse")
-        ppg_channels = ppg_info.desc().append_child("channels")
+        ppg_info.desc.append_child_value("manufacturer", "Muse")
+        ppg_channels = ppg_info.desc.append_child("channels")
 
         for c in ["PPG1", "PPG2", "PPG3"]:
             ppg_channels.append_child("channel").append_child_value(
@@ -82,8 +82,8 @@ def stream(
             "float32",
             "Muse%s" % address,
         )
-        acc_info.desc().append_child_value("manufacturer", "Muse")
-        acc_channels = acc_info.desc().append_child("channels")
+        acc_info.desc.append_child_value("manufacturer", "Muse")
+        acc_channels = acc_info.desc.append_child("channels")
 
         for c in ["X", "Y", "Z"]:
             acc_channels.append_child("channel").append_child_value(
@@ -103,8 +103,8 @@ def stream(
             "float32",
             "Muse%s" % address,
         )
-        gyro_info.desc().append_child_value("manufacturer", "Muse")
-        gyro_channels = gyro_info.desc().append_child("channels")
+        gyro_info.desc.append_child_value("manufacturer", "Muse")
+        gyro_channels = gyro_info.desc.append_child("channels")
 
         for c in ["X", "Y", "Z"]:
             gyro_channels.append_child("channel").append_child_value(

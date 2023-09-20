@@ -7,10 +7,8 @@
 Multiple real-time digital signals with GLSL-based clipping.
 """
 
-import math
 
 import numpy as np
-import scipy.signal
 from pylsl import StreamInlet, resolve_byprop
 from vispy import app, gloo, visuals
 
@@ -95,7 +93,7 @@ class Canvas(app.Canvas):
         info = self.inlet.info()
         description = info.desc()
 
-        window = 10
+        window = 10  # 10-second window showing the data.
         self.sfreq = info.nominal_srate()
         n_samples = int(self.sfreq * window)
         self.n_chans = info.channel_count()
@@ -125,12 +123,14 @@ class Canvas(app.Canvas):
 
         # color = sns.color_palette("RdBu_r", 5)  # n_rows = 5
         # [tuple(np.round(x, 2)) for x in color]
+        # ["purple", "]
+        # matplotlib.colors.to_rgb("purple")
         color = [
-            (0.22, 0.51, 0.73),
-            (0.65, 0.81, 0.89),
-            (0.97, 0.97, 0.96),
-            (0.97, 0.72, 0.6),
-            (0.79, 0.28, 0.25),
+            (142 / 255, 39 / 255, 176 / 255),  # Purple
+            (3 / 255, 169 / 255, 244 / 255),  # Blue
+            (33 / 255, 150 / 255, 243 / 255),  # Dark blue
+            (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
+            (255 / 255, 87 / 255, 34 / 255),  # Orange
         ]
 
         color = np.repeat(color, n, axis=0).astype(np.float32)
@@ -184,7 +184,7 @@ class Canvas(app.Canvas):
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
         gloo.set_state(
-            clear_color="black",
+            clear_color="white",
             blend=True,
             blend_func=("src_alpha", "one_minus_src_alpha"),
         )
@@ -192,7 +192,6 @@ class Canvas(app.Canvas):
         self.show()
 
     def on_key_press(self, event):
-
         # increase time scale
         if event.key.name in ["+", "-"]:
             if event.key.name == "+":
@@ -201,8 +200,8 @@ class Canvas(app.Canvas):
                 dx = 0.05
             scale_x, scale_y = self.program["u_scale"]
             scale_x_new, scale_y_new = (
-                scale_x * math.exp(1.0 * dx),
-                scale_y * math.exp(0.0 * dx),
+                scale_x * np.exp(1.0 * dx),
+                scale_y * np.exp(0.0 * dx),
             )
             self.program["u_scale"] = (max(1, scale_x_new), max(1, scale_y_new))
             self.update()
@@ -211,8 +210,8 @@ class Canvas(app.Canvas):
         dx = np.sign(event.delta[1]) * 0.05
         scale_x, scale_y = self.program["u_scale"]
         scale_x_new, scale_y_new = (
-            scale_x * math.exp(0.0 * dx),
-            scale_y * math.exp(2.0 * dx),
+            scale_x * np.exp(0.0 * dx),
+            scale_y * np.exp(2.0 * dx),
         )
         self.program["u_scale"] = (max(1, scale_x_new), max(0.01, scale_y_new))
         self.update()

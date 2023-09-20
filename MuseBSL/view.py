@@ -175,7 +175,7 @@ class Canvas(app.Canvas):
         eeg_samples, timestamps = self.eeg.pull_chunk(timeout=0.0, max_samples=100)
         eeg_samples = np.array(eeg_samples)[:, ::-1]  # Reverse (newest on the right)
 
-        self.data = np.vstack([self.data, samples])  # Concat
+        self.data = np.vstack([self.data, eeg_samples])  # Concat
         self.data = self.data[-self.n_samples :]  #
 
         # Normalize

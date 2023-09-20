@@ -124,12 +124,14 @@ class Canvas(app.Canvas):
         # Generate the signals as a (m, n) array.
         y = amplitudes
 
-        # color = sns.color_palette("RdBu_r", n_rows)
-        color = [
-            (0.26, 0.58, 0.76),
-            (0.82, 0.9, 0.94),
-            (0.1, 0.86, 0.78),
-            (0.84, 0.38, 0.30),
+        # color = sns.color_palette("RdBu_r", 5)  # n_rows = 5
+        # [tuple(np.round(x, 2)) for x in color]
+        [
+            (0.22, 0.51, 0.73),
+            (0.65, 0.81, 0.89),
+            (0.97, 0.97, 0.96),
+            (0.97, 0.72, 0.6),
+            (0.79, 0.28, 0.25),
         ]
 
         color = np.repeat(color, n, axis=0).astype(np.float32)

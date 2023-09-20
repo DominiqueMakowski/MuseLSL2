@@ -9,6 +9,7 @@ Multiple real-time digital signals with GLSL-based clipping.
 
 
 import bsl
+import matplotlib.pyplot as plt
 import numpy as np
 from vispy import app, gloo, visuals
 
@@ -155,20 +156,21 @@ class Canvas(app.Canvas):
         # sns.color_palette("RdYlGn", 11)[::-1]
         # import matplotlib.colors
         # plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))
+        self.quality_colors = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))
 
-        self.quality_colors = [
-            (0.08, 0.56, 0.3),
-            (0.29, 0.69, 0.36),
-            (0.52, 0.79, 0.4),
-            (0.72, 0.88, 0.46),
-            (0.87, 0.95, 0.58),
-            (1.0, 1.0, 0.75),
-            (1.0, 0.9, 0.58),
-            (0.99, 0.75, 0.44),
-            (0.97, 0.56, 0.32),
-            (0.92, 0.34, 0.22),
-            (0.81, 0.16, 0.15),
-        ]
+        # self.quality_colors = [
+        #     (0.08, 0.56, 0.3),
+        #     (0.29, 0.69, 0.36),
+        #     (0.52, 0.79, 0.4),
+        #     (0.72, 0.88, 0.46),
+        #     (0.87, 0.95, 0.58),
+        #     (1.0, 1.0, 0.75),
+        #     (1.0, 0.9, 0.58),
+        #     (0.99, 0.75, 0.44),
+        #     (0.97, 0.56, 0.32),
+        #     (0.92, 0.34, 0.22),
+        #     (0.81, 0.16, 0.15),
+        # ]
 
         self.scale = scale
         self.eeg = eeg_info["inlet"]

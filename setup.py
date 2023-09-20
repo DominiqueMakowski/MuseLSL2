@@ -11,6 +11,7 @@ setup(
     entry_points={"console_scripts": ["MuseBSL=MuseBSL.__main__:main"]},
     install_requires=[
         "numpy",
+        "matplotlib",
         "bleak",  # Bluetooth backend
         "bitstring",  # For decoding Muse packets
         "bsl >= 0.6.4",  # Brain Streaming Layer (replaces lsl)

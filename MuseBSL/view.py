@@ -11,7 +11,6 @@ import math
 
 import numpy as np
 import scipy.signal
-from mne.filter import create_filter
 from pylsl import StreamInlet, resolve_byprop
 from vispy import app, gloo, visuals
 
@@ -87,7 +86,7 @@ def view():
 
 
 class Canvas(app.Canvas):
-    def __init__(self, lsl_inlet, scale=500, filt=True):
+    def __init__(self, lsl_inlet, scale=500):
         app.Canvas.__init__(
             self, title="EEG - Use your wheel to zoom!", keys="interactive"
         )
@@ -178,16 +177,9 @@ class Canvas(app.Canvas):
 
         self.scale = scale
         self.n_samples = n_samples
-        self.filt = filt
         self.af = [1.0]
 
-        self.data_f = np.zeros((n_samples, self.n_chans))
         self.data = np.zeros((n_samples, self.n_chans))
-
-        self.bf = create_filter(self.data_f.T, self.sfreq, 3, 40.0, method="fir")
-
-        zi = scipy.signal.lfilter_zi(self.bf, self.af)
-        self.filt_state = np.tile(zi, (self.n_chans, 1)).transpose()
 
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
@@ -200,9 +192,6 @@ class Canvas(app.Canvas):
         self.show()
 
     def on_key_press(self, event):
-        # toggle filtering
-        if event.key.name == "D":
-            self.filt = not self.filt
 
         # increase time scale
         if event.key.name in ["+", "-"]:
@@ -237,16 +226,8 @@ class Canvas(app.Canvas):
 
             self.data = np.vstack([self.data, samples])
             self.data = self.data[-self.n_samples :]
-            filt_samples, self.filt_state = scipy.signal.lfilter(
-                self.bf, self.af, samples, axis=0, zi=self.filt_state
-            )
-            self.data_f = np.vstack([self.data_f, filt_samples])
-            self.data_f = self.data_f[-self.n_samples :]
 
-            if self.filt:
-                plot_data = self.data_f / self.scale
-            elif not self.filt:
-                plot_data = (self.data - self.data.mean(axis=0)) / self.scale
+            plot_data = (self.data - self.data.mean(axis=0)) / self.scale
 
             sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
             co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)

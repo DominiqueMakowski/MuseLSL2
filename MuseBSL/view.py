@@ -173,6 +173,7 @@ class Canvas(app.Canvas):
         ]
 
         self.scale = scale
+        self.inlet = info["inlet"]
         self.n_samples = info["n_samples"]
         self.n_channels = info["n_channels"]
         self.af = [1.0]

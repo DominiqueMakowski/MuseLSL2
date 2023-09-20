@@ -8,8 +8,8 @@ Multiple real-time digital signals with GLSL-based clipping.
 """
 
 
+import bsl
 import numpy as np
-from pylsl import StreamInlet, resolve_byprop
 from vispy import app, gloo, visuals
 
 VERT_SHADER = """
@@ -72,13 +72,13 @@ void main() {
 
 def view():
     print("Looking for a stream...")
-    streams = resolve_byprop("type", "EEG", timeout=5)  # LSL_SCAN_TIMEOUT
+    eeg = bsl.lsl.resolve_stream(stype="EEG", timeout=5)
 
-    if len(streams) == 0:
+    if len(eeg) == 0:
         raise (RuntimeError("Can't find EEG stream."))
     print("Start acquiring data.")
 
-    inlet = StreamInlet(streams[0], max_chunklen=12)  # LSL_EEG_CHUNK
+    inlet = bsl.lsl.StreamInlet(eeg)
     Canvas(inlet)
     app.run()
 

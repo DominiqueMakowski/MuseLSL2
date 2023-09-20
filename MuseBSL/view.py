@@ -10,10 +10,9 @@ Multiple real-time digital signals with GLSL-based clipping.
 import math
 
 import numpy as np
+import scipy.signal
 from mne.filter import create_filter
 from pylsl import StreamInlet, resolve_byprop
-from scipy.signal import lfilter, lfilter_zi
-from seaborn import color_palette
 from vispy import app, gloo, visuals
 
 VERT_SHADER = """
@@ -74,6 +73,19 @@ void main() {
 """
 
 
+def view():
+    print("Looking for a stream...")
+    streams = resolve_byprop("type", "EEG", timeout=5)  # LSL_SCAN_TIMEOUT
+
+    if len(streams) == 0:
+        raise (RuntimeError("Can't find EEG stream."))
+    print("Start acquiring data.")
+
+    inlet = StreamInlet(streams[0], max_chunklen=12)  # LSL_EEG_CHUNK
+    Canvas(inlet)
+    app.run()
+
+
 class Canvas(app.Canvas):
     def __init__(self, lsl_inlet, scale=500, filt=True):
         app.Canvas.__init__(
@@ -112,7 +124,7 @@ class Canvas(app.Canvas):
         # Generate the signals as a (m, n) array.
         y = amplitudes
 
-        color = color_palette("RdBu_r", n_rows)
+        # color = color_palette("RdBu_r", n_rows)
 
         color = np.repeat(color, n, axis=0).astype(np.float32)
         # Signal 2D index of each vertex (row and col) and x-index (sample index
@@ -141,7 +153,20 @@ class Canvas(app.Canvas):
             text = visuals.TextVisual("", bold=True, color="white")
             self.quality.append(text)
 
-        self.quality_colors = color_palette("RdYlGn", 11)[::-1]
+        # A rounding of: sns.color_palette("RdYlGn", 11)[::-1]
+        self.quality_colors = [
+            (0.08, 0.56, 0.3),
+            (0.29, 0.69, 0.36),
+            (0.52, 0.79, 0.4),
+            (0.72, 0.88, 0.46),
+            (0.87, 0.95, 0.58),
+            (1.0, 1.0, 0.75),
+            (1.0, 0.9, 0.58),
+            (0.99, 0.75, 0.44),
+            (0.97, 0.56, 0.32),
+            (0.92, 0.34, 0.22),
+            (0.81, 0.16, 0.15),
+        ]
 
         self.scale = scale
         self.n_samples = n_samples
@@ -153,7 +178,7 @@ class Canvas(app.Canvas):
 
         self.bf = create_filter(self.data_f.T, self.sfreq, 3, 40.0, method="fir")
 
-        zi = lfilter_zi(self.bf, self.af)
+        zi = scipy.signal.lfilter_zi(self.bf, self.af)
         self.filt_state = np.tile(zi, (self.n_chans, 1)).transpose()
 
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
@@ -204,7 +229,7 @@ class Canvas(app.Canvas):
 
             self.data = np.vstack([self.data, samples])
             self.data = self.data[-self.n_samples :]
-            filt_samples, self.filt_state = lfilter(
+            filt_samples, self.filt_state = scipy.signal.lfilter(
                 self.bf, self.af, samples, axis=0, zi=self.filt_state
             )
             self.data_f = np.vstack([self.data_f, filt_samples])
@@ -246,16 +271,3 @@ class Canvas(app.Canvas):
         gloo.set_viewport(0, 0, *self.physical_size)
         self.program.draw("line_strip")
         [t.draw() for t in self.names + self.quality]
-
-
-def view():
-    print("Looking for a stream...")
-    streams = resolve_byprop("type", "EEG", timeout=5)  # LSL_SCAN_TIMEOUT
-
-    if len(streams) == 0:
-        raise (RuntimeError("Can't find EEG stream."))
-    print("Start acquiring data.")
-
-    inlet = StreamInlet(streams[0], max_chunklen=12)  # LSL_EEG_CHUNK
-    Canvas(inlet)
-    app.run()

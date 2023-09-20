@@ -221,28 +221,28 @@ class Canvas(app.Canvas):
         """Add some data at the end of each signal (real-time signals)."""
 
         samples, timestamps = self.inlet.pull_chunk(timeout=0.0, max_samples=100)
-        if timestamps:
-            samples = np.array(samples)[:, ::-1]
 
-            self.data = np.vstack([self.data, samples])
-            self.data = self.data[-self.n_samples :]
+        samples = np.array(samples)[:, ::-1]
 
-            plot_data = (self.data - self.data.mean(axis=0)) / self.scale
+        self.data = np.vstack([self.data, samples])
+        self.data = self.data[-self.n_samples :]
 
-            # Impedence
-            sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
-            co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
+        plot_data = (self.data - self.data.mean(axis=0)) / self.scale
 
-            for ii in range(self.n_channels):
-                self.quality[ii].text = "%.2f" % (sd[ii])
-                self.quality[ii].color = self.quality_colors[co[ii]]
-                self.quality[ii].font_size = 12 + co[ii]
+        # Impedence
+        sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
+        co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
 
-                self.names[ii].font_size = 12 + co[ii]
-                self.names[ii].color = self.quality_colors[co[ii]]
+        for ii in range(self.n_channels):
+            self.quality[ii].text = "%.2f" % (sd[ii])
+            self.quality[ii].color = self.quality_colors[co[ii]]
+            self.quality[ii].font_size = 12 + co[ii]
 
-            self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
-            self.update()
+            self.names[ii].font_size = 12 + co[ii]
+            self.names[ii].color = self.quality_colors[co[ii]]
+
+        self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
+        self.update()
 
     def on_resize(self, event):
         # Set canvas viewport and reconfigure visual transforms to match.

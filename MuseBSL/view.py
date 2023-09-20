@@ -16,8 +16,6 @@ from scipy.signal import lfilter, lfilter_zi
 from seaborn import color_palette
 from vispy import app, gloo, visuals
 
-from .constants import LSL_EEG_CHUNK, LSL_SCAN_TIMEOUT
-
 VERT_SHADER = """
 #version 120
 // y coordinate of the position.
@@ -252,12 +250,12 @@ class Canvas(app.Canvas):
 
 def view():
     print("Looking for a stream...")
-    streams = resolve_byprop("type", "EEG", timeout=LSL_SCAN_TIMEOUT)  # Find stream
+    streams = resolve_byprop("type", "EEG", timeout=5)  # LSL_SCAN_TIMEOUT
 
     if len(streams) == 0:
         raise (RuntimeError("Can't find EEG stream."))
     print("Start acquiring data.")
 
-    inlet = StreamInlet(streams[0], max_chunklen=LSL_EEG_CHUNK)
+    inlet = StreamInlet(streams[0], max_chunklen=12)  # LSL_EEG_CHUNK
     Canvas(inlet)
     app.run()

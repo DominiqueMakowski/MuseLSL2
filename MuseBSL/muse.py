@@ -53,7 +53,6 @@ class Muse:
         self.enable_ppg = not callback_ppg is None
 
         self.time_func = time_func
-        self.backend = "bleak"
         self.preset = preset
         self.disable_light = disable_light
 

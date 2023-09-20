@@ -6,7 +6,32 @@ import bsl.lsl
 import numpy as np
 
 from .backends import BleakBackend
-from .constants import *
+
+# Constants
+# 00001800-0000-1000-8000-00805f9b34fb Generic Access 0x05-0x0b
+# 00001801-0000-1000-8000-00805f9b34fb Generic Attribute 0x01-0x04
+ATTR_SERVICECHANGED = "00002a05-0000-1000-8000-00805f9b34fb"  # ble std 0x02-0x04
+# 0000fe8d-0000-1000-8000-00805f9b34fb Interaxon Inc. 0x0c-0x42
+ATTR_STREAM_TOGGLE = "273e0001-4c4d-454d-96be-f03bac821358"  # serial 0x0d-0x0f
+ATTR_LEFTAUX = "273e0002-4c4d-454d-96be-f03bac821358"  # not implemented yet 0x1c-0x1e
+ATTR_TP9 = "273e0003-4c4d-454d-96be-f03bac821358"  # 0x1f-0x21
+ATTR_AF7 = "273e0004-4c4d-454d-96be-f03bac821358"  # fp1 0x22-0x24
+ATTR_AF8 = "273e0005-4c4d-454d-96be-f03bac821358"  # fp2 0x25-0x27
+ATTR_TP10 = "273e0006-4c4d-454d-96be-f03bac821358"  # 0x28-0x2a
+ATTR_RIGHTAUX = "273e0007-4c4d-454d-96be-f03bac821358"  # 0x2b-0x2d
+ATTR_REFDRL = "273e0008-4c4d-454d-96be-f03bac821358"  # not implemented yet 0x10-0x12
+ATTR_GYRO = "273e0009-4c4d-454d-96be-f03bac821358"  # 0x13-0x15
+ATTR_ACCELEROMETER = "273e000a-4c4d-454d-96be-f03bac821358"  # 0x16-0x18
+ATTR_TELEMETRY = "273e000b-4c4d-454d-96be-f03bac821358"  # 0x19-0x1b
+# ATTR_MAGNETOMETER = '273e000c-4c4d-454d-96be-f03bac821358' # 0x2e-0x30
+# ATTR_PRESSURE = '273e000d-4c4d-454d-96be-f03bac821358' # 0x31-0x33
+# ATTR_ULTRAVIOLET = '273e000e-4c4d-454d-96be-f03bac821358' # 0x34-0x36
+ATTR_PPG1 = "273e000f-4c4d-454d-96be-f03bac821358"  # ambient 0x37-0x39
+ATTR_PPG2 = "273e0010-4c4d-454d-96be-f03bac821358"  # infrared 0x3a-0x3c
+ATTR_PPG3 = "273e0011-4c4d-454d-96be-f03bac821358"  # red 0x3d-0x3f
+ATTR_THERMISTOR = (
+    "273e0012-4c4d-454d-96be-f03bac821358"  # muse S only, not implemented yet 0x40-0x42
+)
 
 
 class Muse:
@@ -188,11 +213,11 @@ class Muse:
 
     def _subscribe_eeg(self):
         """subscribe to eeg stream."""
-        self.device.subscribe(MUSE_GATT_ATTR_TP9, callback=self._handle_eeg)
-        self.device.subscribe(MUSE_GATT_ATTR_AF7, callback=self._handle_eeg)
-        self.device.subscribe(MUSE_GATT_ATTR_AF8, callback=self._handle_eeg)
-        self.device.subscribe(MUSE_GATT_ATTR_TP10, callback=self._handle_eeg)
-        self.device.subscribe(MUSE_GATT_ATTR_RIGHTAUX, callback=self._handle_eeg)
+        self.device.subscribe(ATTR_TP9, callback=self._handle_eeg)
+        self.device.subscribe(ATTR_AF7, callback=self._handle_eeg)
+        self.device.subscribe(ATTR_AF8, callback=self._handle_eeg)
+        self.device.subscribe(ATTR_TP10, callback=self._handle_eeg)
+        self.device.subscribe(ATTR_RIGHTAUX, callback=self._handle_eeg)
 
     def _unpack_eeg_channel(self, packet):
         """Decode data packet of one EEG channel.
@@ -312,9 +337,7 @@ class Muse:
         self._current_msg = ""
 
     def _subscribe_control(self):
-        self.device.subscribe(
-            MUSE_GATT_ATTR_STREAM_TOGGLE, callback=self._handle_control
-        )
+        self.device.subscribe(ATTR_STREAM_TOGGLE, callback=self._handle_control)
 
         self._init_control()
 
@@ -361,7 +384,7 @@ class Muse:
             self._init_control()
 
     def _subscribe_telemetry(self):
-        self.device.subscribe(MUSE_GATT_ATTR_TELEMETRY, callback=self._handle_telemetry)
+        self.device.subscribe(ATTR_TELEMETRY, callback=self._handle_telemetry)
 
     def _handle_telemetry(self, handle, packet):
         """Handle the telemetry (battery, temperature and stuff) incoming data"""
@@ -400,7 +423,7 @@ class Muse:
         return packet_index, samples
 
     def _subscribe_acc(self):
-        self.device.subscribe(MUSE_GATT_ATTR_ACCELEROMETER, callback=self._handle_acc)
+        self.device.subscribe(ATTR_ACCELEROMETER, callback=self._handle_acc)
 
     def _handle_acc(self, handle, packet):
         """Handle incoming accelerometer data.
@@ -413,14 +436,13 @@ class Muse:
         # save last timestamp for disconnection timer
         self.last_timestamp = timestamps[-1]
 
-        packet_index, samples = self._unpack_imu_channel(
-            packet, scale=MUSE_ACCELEROMETER_SCALE_FACTOR
-        )
+        # MUSE_ACCELEROMETER_SCALE_FACTOR (no idea where this comes from)
+        packet_index, samples = self._unpack_imu_channel(packet, scale=0.0000610352)
 
         self.callback_acc(samples, timestamps)
 
     def _subscribe_gyro(self):
-        self.device.subscribe(MUSE_GATT_ATTR_GYRO, callback=self._handle_gyro)
+        self.device.subscribe(ATTR_GYRO, callback=self._handle_gyro)
 
     def _handle_gyro(self, handle, packet):
         """Handle incoming gyroscope data.
@@ -434,17 +456,16 @@ class Muse:
         # save last timestamp for disconnection timer
         self.last_timestamp = timestamps[-1]
 
-        packet_index, samples = self._unpack_imu_channel(
-            packet, scale=MUSE_GYRO_SCALE_FACTOR
-        )
+        # MUSE_GYRO_SCALE_FACTOR (no idea where this number comes from)
+        packet_index, samples = self._unpack_imu_channel(packet, scale=0.0074768)
 
         self.callback_gyro(samples, timestamps)
 
     def _subscribe_ppg(self):
         """subscribe to ppg stream."""
-        self.device.subscribe(MUSE_GATT_ATTR_PPG1, callback=self._handle_ppg)
-        self.device.subscribe(MUSE_GATT_ATTR_PPG2, callback=self._handle_ppg)
-        self.device.subscribe(MUSE_GATT_ATTR_PPG3, callback=self._handle_ppg)
+        self.device.subscribe(ATTR_PPG1, callback=self._handle_ppg)
+        self.device.subscribe(ATTR_PPG2, callback=self._handle_ppg)
+        self.device.subscribe(ATTR_PPG3, callback=self._handle_ppg)
 
     def _handle_ppg(self, handle, data):
         """Callback for receiving a sample.

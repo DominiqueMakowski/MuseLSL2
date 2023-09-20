@@ -7,26 +7,22 @@ from .muse import Muse
 
 
 # Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
-def stream(
-    address,
-    ppg=True,
-    acc_enabled=False,
-    gyro_enabled=False,
-    disable_light=False,
-):
+def stream(address, ppg=True, acc=True, gyro=True):
+    # Find device
     if not address:
         from .find import find_devices
 
         device = find_devices(max_duration=10, verbose=True)[0]
         address = device["address"]
 
+    # EEG ====================================================
     eeg_info = bsl.lsl.StreamInfo(
         "Muse",
-        "EEG",
+        stype="EEG",
         n_channels=5,
         sfreq=256,
         dtype="float32",
-        source_id="Muse%s" % address,
+        source_id=f"Muse_{address}",
     )
     eeg_info.desc.append_child_value("manufacturer", "Muse")
     eeg_channels = eeg_info.desc.append_child("channels")
@@ -36,16 +32,17 @@ def stream(
             "label", c
         ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
 
-    eeg_outlet = bsl.lsl.StreamOutlet(eeg_info, chunk_size=12)
+    eeg_outlet = bsl.lsl.StreamOutlet(eeg_info, chunk_size=6)
 
+    # PPG ====================================================
     if ppg is True:
         ppg_info = bsl.lsl.StreamInfo(
             "Muse",
-            "PPG",
+            stype="PPG",
             n_channels=3,
             sfreq=64,
             dtype="float32",
-            source_id="Muse%s" % address,
+            source_id=f"Muse_{address}",
         )
         ppg_info.desc.append_child_value("manufacturer", "Muse")
         ppg_channels = ppg_info.desc.append_child("channels")
@@ -56,16 +53,17 @@ def stream(
                 "label", c
             ).append_child_value("unit", "mmHg").append_child_value("type", "PPG")
 
-        ppg_outlet = bsl.lsl.StreamOutlet(ppg_info, chunk_size=6)
+        ppg_outlet = bsl.lsl.StreamOutlet(ppg_info, chunk_size=3)
 
-    if acc_enabled:
+    # ACC ====================================================
+    if acc:
         acc_info = bsl.lsl.StreamInfo(
             "Muse",
-            "ACC",
+            stype="ACC",
             n_channels=3,
             sfreq=52,
             dtype="float32",
-            source_id="Muse%s" % address,
+            source_id=f"Muse_{address}",
         )
         acc_info.desc.append_child_value("manufacturer", "Muse")
         acc_channels = acc_info.desc.append_child("channels")
@@ -79,14 +77,15 @@ def stream(
 
         acc_outlet = bsl.lsl.StreamOutlet(acc_info, chunk_size=1)
 
-    if gyro_enabled:
+    # GYRO ====================================================
+    if gyro:
         gyro_info = bsl.lsl.StreamInfo(
             "Muse",
-            "GYRO",
+            stype="GYRO",
             n_channels=3,
             sfreq=52,
             dtype="float32",
-            source_id="Muse%s" % address,
+            source_id=f"Muse_{address}",
         )
         gyro_info.desc.append_child_value("manufacturer", "Muse")
         gyro_channels = gyro_info.desc.append_child("channels")
@@ -104,8 +103,8 @@ def stream(
 
     push_eeg = partial(push, outlet=eeg_outlet)
     push_ppg = partial(push, outlet=ppg_outlet) if ppg else None
-    push_acc = partial(push, outlet=acc_outlet) if acc_enabled else None
-    push_gyro = partial(push, outlet=gyro_outlet) if gyro_enabled else None
+    push_acc = partial(push, outlet=acc_outlet) if acc else None
+    push_gyro = partial(push, outlet=gyro_outlet) if gyro else None
 
     muse = Muse(
         address=address,
@@ -113,7 +112,6 @@ def stream(
         callback_ppg=push_ppg,
         callback_acc=push_acc,
         callback_gyro=push_gyro,
-        disable_light=disable_light,
     )
 
     didConnect = muse.connect()
@@ -122,12 +120,12 @@ def stream(
         print("Connected.")
         muse.start()
 
-        ppg_string = ", PPG" if ppg else ""
-        acc_string = ", ACC" if acc_enabled else ""
-        gyro_string = ", GYRO" if gyro_enabled else ""
+        ppg_txt = ", PPG" if ppg else ""
+        acc_txt = ", ACC" if acc else ""
+        gyro_txt = ", GYRO" if gyro else ""
 
         print(
-            f"Streaming... EEG{ppg_string}{acc_string}{gyro_string}... (CTRL + C to interrupt)"
+            f"Streaming... EEG{ppg_txt}{acc_txt}{gyro_txt}... (CTRL + C to interrupt)"
         )
 
         # Disconnect if no data is received for 60 seconds
@@ -140,5 +138,5 @@ def stream(
                 break
 
         if bsl.lsl.local_clock() - muse.last_timestamp > 60:
-            print("No data received since 1 min. Disconnecting...")
+            print("No data received for 60 seconds. Disconnecting...")
         print("Disconnected.")

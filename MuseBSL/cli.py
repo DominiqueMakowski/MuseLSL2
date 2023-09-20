@@ -26,40 +26,31 @@ class CLI:
             help="Device MAC address.",
         )
         parser.add_argument(
-            "-p", "--ppg", default=True, action="store_true", help="Include PPG data"
+            "-p",
+            "--ppg",
+            default=True,
+            action="store_false",
+            help="Disable streaming of PPG data",
         )
         parser.add_argument(
             "-c",
             "--acc",
-            default=False,
-            action="store_true",
-            help="Include accelerometer data",
+            default=True,
+            action="store_false",
+            help="Disable streaming of accelerometer data",
         )
         parser.add_argument(
             "-g",
             "--gyro",
-            default=False,
-            action="store_true",
-            help="Include gyroscope data",
-        )
-        parser.add_argument(
-            "-dl",
-            "--disable-light",
-            dest="disable_light",
-            action="store_true",
-            help="Turn off light on the Muse S headband",
+            default=True,
+            action="store_false",
+            help="Disable streaming of gyroscope data",
         )
 
         args = parser.parse_args(sys.argv[2:])
         from .stream import stream
 
-        stream(
-            args.address,
-            args.ppg,
-            args.acc,
-            args.gyro,
-            args.disable_light,
-        )
+        stream(args.address, args.ppg, args.acc, args.gyro)
 
     def view(self):
         from .view import view

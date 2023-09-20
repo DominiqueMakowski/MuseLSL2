@@ -1,6 +1,3 @@
-from sys import platform
-from time import sleep, time
-
 import bitstring
 import bsl.lsl
 import numpy as np

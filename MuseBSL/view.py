@@ -183,6 +183,7 @@ class Canvas(app.Canvas):
 
         # Impedence
         sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
+        # Discretize the impedence into 11 levels for coloring
         co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
 
         for i in range(self.n_channels):

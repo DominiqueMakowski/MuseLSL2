@@ -258,8 +258,8 @@ class Muse:
         self.sample_index_ppg = 0
         self._P = 1e-4
         t0 = bsl.lsl.local_clock()
-        self.reg_params = np.array([t0, 1.0 / MUSE_SAMPLING_EEG_RATE])
-        self.reg_ppg_sample_rate = np.array([t0, 1.0 / MUSE_SAMPLING_PPG_RATE])
+        self.reg_params = np.array([t0, 1.0 / 256])  # EEG Sampling Rate = 256 Hz
+        self.reg_ppg_sample_rate = np.array([t0, 1.0 / 64])  # PPG Sampling Rate = 64 Hz
 
     def _update_timestamp_correction(self, t_source, t_receiver):
         """Update regression for dejittering

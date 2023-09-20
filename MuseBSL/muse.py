@@ -429,7 +429,7 @@ class Muse:
         if handle != 20:  # handle 0x14
             return
 
-        timestamps = [self.time_func()] * 3
+        timestamps = [bsl.lsl.local_clock()] * 3
 
         # save last timestamp for disconnection timer
         self.last_timestamp = timestamps[-1]

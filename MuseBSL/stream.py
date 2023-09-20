@@ -25,12 +25,9 @@ def stream(address, ppg=True, acc=True, gyro=True):
         source_id=f"Muse_{address}",
     )
     eeg_info.desc.append_child_value("manufacturer", "Muse")
-    eeg_channels = eeg_info.desc.append_child("channels")
-
-    for c in ["TP9", "AF7", "AF8", "TP10", "Right AUX"]:
-        eeg_channels.append_child("channel").append_child_value(
-            "label", c
-        ).append_child_value("unit", "microvolts").append_child_value("type", "EEG")
+    eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10", "Right AUX"])
+    eeg_info.set_channel_types(["eeg"] * 5)
+    eeg_info.set_channel_units("microvolts")
 
     eeg_outlet = bsl.lsl.StreamOutlet(eeg_info, chunk_size=6)
 
@@ -45,13 +42,10 @@ def stream(address, ppg=True, acc=True, gyro=True):
             source_id=f"Muse_{address}",
         )
         ppg_info.desc.append_child_value("manufacturer", "Muse")
-        ppg_channels = ppg_info.desc.append_child("channels")
-
         # PPG data has three channels: ambient, infrared, red
-        for c in ["LUX", "PPG", "RED"]:
-            ppg_channels.append_child("channel").append_child_value(
-                "label", c
-            ).append_child_value("unit", "mmHg").append_child_value("type", "PPG")
+        ppg_info.set_channel_names(["LUX", "PPG", "RED"])
+        ppg_info.set_channel_types(["ppg"] * 5)
+        ppg_info.set_channel_units("mmHg")
 
         ppg_outlet = bsl.lsl.StreamOutlet(ppg_info, chunk_size=3)
 
@@ -66,14 +60,9 @@ def stream(address, ppg=True, acc=True, gyro=True):
             source_id=f"Muse_{address}",
         )
         acc_info.desc.append_child_value("manufacturer", "Muse")
-        acc_channels = acc_info.desc.append_child("channels")
-
-        for c in ["ACC_X", "ACC_Y", "ACC_Z"]:
-            acc_channels.append_child("channel").append_child_value(
-                "label", c
-            ).append_child_value("unit", "g").append_child_value(
-                "type", "accelerometer"
-            )
+        acc_info.set_channel_names(["ACC_X", "ACC_Y", "ACC_Z"])
+        acc_info.set_channel_types(["accelerometer"] * 3)
+        acc_info.set_channel_units("g")
 
         acc_outlet = bsl.lsl.StreamOutlet(acc_info, chunk_size=1)
 
@@ -88,12 +77,9 @@ def stream(address, ppg=True, acc=True, gyro=True):
             source_id=f"Muse_{address}",
         )
         gyro_info.desc.append_child_value("manufacturer", "Muse")
-        gyro_channels = gyro_info.desc.append_child("channels")
-
-        for c in ["GYRO_X", "GYRO_Y", "GYRO_Z"]:
-            gyro_channels.append_child("channel").append_child_value(
-                "label", c
-            ).append_child_value("unit", "dps").append_child_value("type", "gyroscope")
+        gyro_info.set_channel_names(["GYRO_X", "GYRO_Y", "GYRO_Z"])
+        gyro_info.set_channel_types(["gyroscope"] * 3)
+        gyro_info.set_channel_units("dps")
 
         gyro_outlet = bsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
 

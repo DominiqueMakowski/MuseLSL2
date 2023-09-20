@@ -13,7 +13,7 @@ setup(
         "numpy",
         "bleak",  # Bluetooth backend
         "bitstring",  # For decoding Muse packets
-        "bsl",  # Brain Streaming Layer (replaces lsl)
+        "bsl >= 0.6.4",  # Brain Streaming Layer (replaces lsl)
         "vispy",  # Visualization
     ],
     packages=find_packages(),

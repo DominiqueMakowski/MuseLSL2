@@ -108,13 +108,13 @@ class Canvas(app.Canvas):
             (142 / 255, 39 / 255, 176 / 255),  # Purple
         ]
 
-        if ppg is not None:
-            ppg_info = _view_info(ppg)
-            colors += [
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-            ]
+        # if ppg is not None:
+        #     ppg_info = _view_info(ppg)
+        #     colors += [
+        #         (244 / 255, 67 / 255, 54 / 255),  # Red
+        #         (244 / 255, 67 / 255, 54 / 255),  # Red
+        #         (244 / 255, 67 / 255, 54 / 255),  # Red
+        #     ]
 
         # Number of cols and rows in the table.
         n_rows = len(colors)

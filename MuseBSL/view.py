@@ -126,7 +126,7 @@ class Canvas(app.Canvas):
 
         # color = sns.color_palette("RdBu_r", 5)  # n_rows = 5
         # [tuple(np.round(x, 2)) for x in color]
-        [
+        color = [
             (0.22, 0.51, 0.73),
             (0.65, 0.81, 0.89),
             (0.97, 0.97, 0.96),

@@ -90,6 +90,7 @@ class Canvas(app.Canvas):
         )
 
         # Get info from stream
+        inlet.open_stream()
         self.inlet = inlet
         info = inlet.get_sinfo()
         description = info.desc

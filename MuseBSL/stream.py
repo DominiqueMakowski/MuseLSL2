@@ -92,8 +92,6 @@ def stream(address, ppg=True, acc=True, gyro=True):
     push_acc = partial(push, outlet=acc_outlet) if acc else None
     push_gyro = partial(push, outlet=gyro_outlet) if gyro else None
 
-    print("ISOLATE A")
-
     muse = Muse(
         address=address,
         callback_eeg=push_eeg,
@@ -102,11 +100,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         callback_gyro=push_gyro,
     )
 
-    print("ISOLATE B")
-
     didConnect = muse.connect()
-
-    print("ISOLATE C")
 
     if didConnect:
         print("Connected.")

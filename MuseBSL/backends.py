@@ -6,8 +6,11 @@ import bleak
 
 
 def _wait(coroutine):
-    loop = asyncio.get_event_loop()
-    return loop.run_until_complete(coroutine)
+    try:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(coroutine)
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
 
 
 def sleep(seconds):

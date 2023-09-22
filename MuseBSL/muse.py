@@ -81,11 +81,8 @@ class Muse:
 
         print(f"Connecting to {self.address}...")
         self.adapter = BleakBackend()
-        print("ISOLATE A")
         self.adapter.start()
-        print("ISOLATE B")
         self.device = self.adapter.connect(self.address)
-        print("ISOLATE C")
         if self.preset != None:
             self.select_preset(self.preset)
 
@@ -110,8 +107,6 @@ class Muse:
 
         if self.disable_light:
             self._disable_light()
-
-        print("ISOLATE D")
 
         self.last_timestamp = bsl.lsl.local_clock()
 

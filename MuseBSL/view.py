@@ -114,6 +114,7 @@ class Canvas(app.Canvas):
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
         ppg = None
+        ppg_info = None
         # if ppg is not None:
         #     ppg_info = _view_info(ppg)
         #     self.ch_names += ppg_info["ch_names"]
@@ -211,12 +212,12 @@ class Canvas(app.Canvas):
 
         # Loop through the 5 last channels indices (EEG channels)
         for i in range(5):
-            self.display_quality[-1 - i].text = f"{sd[i]:.2f}"
-            self.display_quality[-1 - i].color = self.colors_quality[co[i]]
-            self.display_quality[-1 - i].font_size = 12 + co[i]
+            self.display_quality[i].text = f"{sd[i]:.2f}"
+            self.display_quality[i].color = self.colors_quality[co[i]]
+            self.display_quality[i].font_size = 12 + co[i]
 
-            self.display_names[-1 - i].font_size = 12 + co[i]
-            self.display_names[-1 - i].color = self.colors_quality[co[i]]
+            self.display_names[i].font_size = 12 + co[i]
+            self.display_names[i].color = self.colors_quality[co[i]]
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

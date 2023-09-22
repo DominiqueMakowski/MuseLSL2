@@ -179,16 +179,19 @@ class Canvas(app.Canvas):
         samples, time = self.eeg.pull_chunk(timeout=0, max_samples=100)
         samples = np.array(samples)[:, ::-1]  # Reverse (newest on the right)
 
-        # if self.ppg:
-        #     ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
-        #     if len(ppg_samples) > 0:
-        #         ppg_samples = np.array(ppg_samples)[:, ::-1]
-        #         # For each eeg timestamp, find closest ppg timestamp
-        #         ppg_samples = np.array(
-        #             [ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time]
-        #         )
-        #         # Concat with samples
-        #         samples = np.hstack([samples, ppg_samples])
+        if self.ppg:
+            ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
+            if len(ppg_samples) > 0:
+                ppg_samples = np.array(ppg_samples)[:, ::-1]
+                # For each eeg timestamp, find closest ppg timestamp
+                ppg_samples = np.array(
+                    [ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time]
+                )
+                # Concat with samples
+                samples = np.hstack([samples, ppg_samples])
+            else:
+                # Concat with samples
+                samples = np.hstack([samples, np.zeros((len(samples), 3))])
 
         self.data = np.vstack([self.data, samples])  # Concat
         self.data = self.data[-self.n_samples :]  #

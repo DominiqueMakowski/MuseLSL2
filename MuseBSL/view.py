@@ -113,15 +113,16 @@ class Canvas(app.Canvas):
         # Colors for impedence
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
-        if ppg is not None:
-            ppg_info = _view_info(ppg)
-            self.ch_names += ppg_info["ch_names"]
-            self.n_channels += ppg_info["n_channels"]
-            colors += [
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-            ]
+        ppg = None
+        # if ppg is not None:
+        #     ppg_info = _view_info(ppg)
+        #     self.ch_names += ppg_info["ch_names"]
+        #     self.n_channels += ppg_info["n_channels"]
+        #     colors += [
+        #         (244 / 255, 67 / 255, 54 / 255),  # Red
+        #         (244 / 255, 67 / 255, 54 / 255),  # Red
+        #         (244 / 255, 67 / 255, 54 / 255),  # Red
+        #     ]
 
         # Number of cols and rows in the table.
         n_rows = len(colors)

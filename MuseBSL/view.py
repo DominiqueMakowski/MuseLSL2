@@ -188,10 +188,10 @@ class Canvas(app.Canvas):
                     [ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time]
                 )
                 # Concat with samples
-                samples = np.hstack([samples, ppg_samples])
+                samples = np.hstack([ppg_samples, samples])
             else:
                 # Concat with samples
-                samples = np.hstack([samples, np.zeros((len(samples), 3))])
+                samples = np.hstack([np.zeros((len(samples), 3)), samples])
 
         self.data = np.vstack([self.data, samples])  # Concat
         self.data = self.data[-self.n_samples :]  #

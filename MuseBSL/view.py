@@ -208,7 +208,8 @@ class Canvas(app.Canvas):
         # Discretize the impedence into 11 levels for coloring
         co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
 
-        for i in range(5):
+        # Loop through the 5 last channels indices (EEG channels)
+        for i in range(self.n_channels)[::-1][0:5]:
             self.display_quality[i].text = f"{sd[i]:.2f}"
             self.display_quality[i].color = self.colors_quality[co[i]]
             self.display_quality[i].font_size = 12 + co[i]

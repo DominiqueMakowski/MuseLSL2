@@ -92,7 +92,7 @@ def view():
 
 
 class Canvas(app.Canvas):
-    def __init__(self, eeg, ppg=None, scale=500):
+    def __init__(self, eeg, ppg=None):
         app.Canvas.__init__(
             self, title="Muse - Use your wheel to zoom!", keys="interactive"
         )
@@ -162,7 +162,6 @@ class Canvas(app.Canvas):
         self.n_samples = eeg_info["n_samples"]
         self.sfreq = eeg_info["sfreq"]
 
-        self.scale = scale
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
         gloo.set_state(
@@ -176,9 +175,11 @@ class Canvas(app.Canvas):
     def on_timer(self, event):
         """Add some data at the end of each signal (real-time signals)."""
 
+        # EEG ------------------------------------------------
         samples, time = self.eeg.pull_chunk(timeout=0, max_samples=100)
         samples = np.array(samples)[:, ::-1]  # Reverse (newest on the right)
 
+        # PPG ------------------------------------------------
         if self.ppg:
             ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
             if len(ppg_samples) > 0:
@@ -194,17 +195,20 @@ class Canvas(app.Canvas):
                 samples = np.hstack([np.zeros((len(samples), 3)), samples])
 
         self.data = np.vstack([self.data, samples])  # Concat
-        self.data = self.data[-self.n_samples :]  #
+        self.data = self.data[-self.n_samples :]  # Keep only last window length
 
-        # Normalize
-        plot_data = (self.data - self.data.mean(axis=0)) / self.scale
+        # Rescaling
+        plot_data = self.data
 
-        # Impedence
-        sd = np.std(plot_data[-int(self.sfreq) :], axis=0)[::-1] * self.scale
+        # Normalize EEG (last 5 channels)
+        plot_data[:, -5:] = (plot_data[:, -5:] - plot_data[:, -5:].mean(axis=0)) / 500
+
+        # Compute Impedence
+        sd = np.std(plot_data[-int(self.sfreq) :, -5:], axis=0)[::-1] * 500
         # Discretize the impedence into 11 levels for coloring
         co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
 
-        for i in range(self.n_channels):
+        for i in range(5):
             self.display_quality[i].text = f"{sd[i]:.2f}"
             self.display_quality[i].color = self.colors_quality[co[i]]
             self.display_quality[i].font_size = 12 + co[i]

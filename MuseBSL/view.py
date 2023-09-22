@@ -116,7 +116,7 @@ class Canvas(app.Canvas):
         if ppg is not None:
             ppg_info = _view_info(ppg)
             self.ch_names += ppg_info["ch_names"]
-            self.n_channels = ppg_info["n_channels"]
+            self.n_channels += ppg_info["n_channels"]
             colors += [
                 (244 / 255, 67 / 255, 54 / 255),  # Red
                 (244 / 255, 67 / 255, 54 / 255),  # Red
@@ -179,16 +179,16 @@ class Canvas(app.Canvas):
         samples, time = self.eeg.pull_chunk(timeout=0, max_samples=100)
         samples = np.array(samples)[:, ::-1]  # Reverse (newest on the right)
 
-        if self.ppg:
-            ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
-            if len(ppg_samples) > 0:
-                ppg_samples = np.array(ppg_samples)[:, ::-1]
-                # For each eeg timestamp, find closest ppg timestamp
-                ppg_samples = np.array(
-                    [ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time]
-                )
-                # Concat with samples
-                samples = np.hstack([samples, ppg_samples])
+        # if self.ppg:
+        #     ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
+        #     if len(ppg_samples) > 0:
+        #         ppg_samples = np.array(ppg_samples)[:, ::-1]
+        #         # For each eeg timestamp, find closest ppg timestamp
+        #         ppg_samples = np.array(
+        #             [ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time]
+        #         )
+        #         # Concat with samples
+        #         samples = np.hstack([samples, ppg_samples])
 
         self.data = np.vstack([self.data, samples])  # Concat
         self.data = self.data[-self.n_samples :]  #

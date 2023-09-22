@@ -200,7 +200,7 @@ class Canvas(app.Canvas):
         self.data = self.data[-self.n_samples :]  # Keep only last window length
 
         # Rescaling
-        plot_data = self.data
+        plot_data = self.data.copy()
 
         # Normalize EEG (last 5 channels)
         plot_data[:, -5:] = (plot_data[:, -5:] - plot_data[:, -5:].mean(axis=0)) / 500

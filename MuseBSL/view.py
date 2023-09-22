@@ -99,6 +99,8 @@ class Canvas(app.Canvas):
 
         # Get info from stream
         eeg_info = _view_info(eeg)
+        self.ch_names = eeg_info["ch_names"]
+        self.n_channels = eeg_info["n_channels"]
 
         # Channel colors
         colors = [
@@ -111,13 +113,15 @@ class Canvas(app.Canvas):
         # Colors for impedence
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
-        # if ppg is not None:
-        #     ppg_info = _view_info(ppg)
-        #     colors += [
-        #         (244 / 255, 67 / 255, 54 / 255),  # Red
-        #         (244 / 255, 67 / 255, 54 / 255),  # Red
-        #         (244 / 255, 67 / 255, 54 / 255),  # Red
-        #     ]
+        if ppg is not None:
+            ppg_info = _view_info(ppg)
+            self.ch_names += ppg_info["ch_names"]
+            self.n_channels = ppg_info["n_channels"]
+            colors += [
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+            ]
 
         # Number of cols and rows in the table.
         n_rows = len(colors)
@@ -147,18 +151,18 @@ class Canvas(app.Canvas):
         self.font_size = 48.0
         self.display_names = []
         self.display_quality = []
-        for channel in eeg_info["ch_names"]:
+        for channel in self.ch_names:
             text = visuals.TextVisual(channel, bold=True, color="white")
             self.display_names.append(text)
             text = visuals.TextVisual("", bold=True, color="white")
             self.display_quality.append(text)
 
-        self.scale = scale
         self.eeg = eeg_info["inlet"]
+        self.ppg = False if ppg is None else ppg_info["inlet"]
         self.n_samples = eeg_info["n_samples"]
-        self.n_channels = eeg_info["n_channels"]
         self.sfreq = eeg_info["sfreq"]
 
+        self.scale = scale
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
         gloo.set_state(
@@ -172,10 +176,20 @@ class Canvas(app.Canvas):
     def on_timer(self, event):
         """Add some data at the end of each signal (real-time signals)."""
 
-        eeg_samples, timestamps = self.eeg.pull_chunk(timeout=0.0, max_samples=100)
-        eeg_samples = np.array(eeg_samples)[:, ::-1]  # Reverse (newest on the right)
+        samples, time = self.eeg.pull_chunk(timeout=0.0, max_samples=100)
+        samples = np.array(samples)[:, ::-1]  # Reverse (newest on the right)
 
-        self.data = np.vstack([self.data, eeg_samples])  # Concat
+        if self.ppg:
+            ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0.0, max_samples=100)
+            ppg_samples = np.array(ppg_samples)[:, ::-1]
+            # For each eeg timestamp, find closest ppg timestamp
+            ppg_samples = np.array(
+                [ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time]
+            )
+            # Concat with samples
+            samples = np.hstack([samples, ppg_samples])
+
+        self.data = np.vstack([self.data, samples])  # Concat
         self.data = self.data[-self.n_samples :]  #
 
         # Normalize

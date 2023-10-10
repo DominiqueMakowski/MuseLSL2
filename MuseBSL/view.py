@@ -130,7 +130,6 @@ class Canvas(app.Canvas):
         # Initialize data to zero
         self.data = np.zeros((eeg_info["n_samples"], n_rows))
 
-        colors = np.repeat(colors, eeg_info["n_samples"], axis=0).astype(np.float32)
         # Signal 2D index of each vertex (row and col) and x-index (sample index
         # within each signal).
         index = np.c_[
@@ -142,7 +141,7 @@ class Canvas(app.Canvas):
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program["a_position"] = self.data.T.astype(np.float32).reshape(-1, 1)
         self.program["a_index"] = index
-        self.program["a_color"] = colors
+        self.program["a_color"] = np.repeat(colors[::-1], eeg_info["n_samples"], axis=0).astype(np.float32)
         self.program["u_scale"] = (1.0, 1.0)
         self.program["u_size"] = (n_rows, n_cols)
         self.program["u_n"] = eeg_info["n_samples"]

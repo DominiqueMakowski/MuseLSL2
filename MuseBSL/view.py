@@ -152,9 +152,9 @@ class Canvas(app.Canvas):
         self.display_names = []
         self.display_quality = []
         for channel in self.ch_names:
-            text = visuals.TextVisual(channel, bold=True, color="white")
+            text = visuals.TextVisual(channel, bold=True, color="black")
             self.display_names.append(text)
-            text = visuals.TextVisual("", bold=True, color="white")
+            text = visuals.TextVisual("", bold=True, color="black")
             self.display_quality.append(text)
 
         # Store
@@ -185,6 +185,8 @@ class Canvas(app.Canvas):
         if self.ppg:
             # samples = np.hstack([np.zeros((len(samples), 3)), samples])
             ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
+            print(ppg_time)
+            print("------------")
             if len(ppg_samples) > 0:
                 # For each eeg timestamp, find closest ppg timestamp
                 closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)

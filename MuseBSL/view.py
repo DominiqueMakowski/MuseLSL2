@@ -185,7 +185,7 @@ class Canvas(app.Canvas):
         if self.ppg:
             # samples = np.hstack([np.zeros((len(samples), 3)), samples])
             ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
-            print(ppg_time)
+            print(ppg_samples)
             print("------------")
             if len(ppg_samples) > 0:
                 # For each eeg timestamp, find closest ppg timestamp
@@ -202,9 +202,8 @@ class Canvas(app.Canvas):
         # Rescaling
         plot_data = self.data.copy()
 
-        # Normalize EEG (last 5 channels)
+        # Normalize EEG (last 5 channels) --------------------
         plot_data[:, -5:] = (plot_data[:, -5:] - plot_data[:, -5:].mean(axis=0)) / 500
-
         # Compute Impedence
         sd = np.std(plot_data[-int(self.sfreq) :, -5:], axis=0)[::-1] * 500
         # Discretize the impedence into 11 levels for coloring

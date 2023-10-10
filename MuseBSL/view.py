@@ -179,7 +179,7 @@ class Canvas(app.Canvas):
 
         # EEG ------------------------------------------------
         samples, time = self.eeg.pull_chunk(timeout=0, max_samples=100)
-        samples = samples[:, ::-1]  # Reverse (newest on the right)
+        samples = samples[:, ::-1]  # Reverse channels
 
         # PPG ------------------------------------------------
         if self.ppg:
@@ -188,25 +188,28 @@ class Canvas(app.Canvas):
             last_samples = np.zeros(3)
             ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
             if len(ppg_samples) > 0:
-                print("=======")
-                print("time = np.array(")
-                print(time.tolist())
-                print(")")
-                print("------")
-                print("ppg_time = np.array(")
-                print(ppg_time.tolist())
-                print(")")
-                print("------")
-                print("ppg_samples = np.array(")
-                print(ppg_samples.tolist())
-                print(")")
-                print("=======")
                 # For each eeg timestamp, find closest ppg timestamp
                 closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)
                 # Reverse and get closest
                 ppg_samples = ppg_samples[:, ::-1][closest_times, :]
                 # Store last sample
-                # last_samples = ppg_samples[-1, :]
+                try:
+                    last_samples = ppg_samples[-1, :]
+                except:
+                    print("ERROR")
+                    print("=======")
+                    print("time = np.array(")
+                    print(time.tolist())
+                    print(")")
+                    print("------")
+                    print("ppg_time = np.array(")
+                    print(ppg_time.tolist())
+                    print(")")
+                    print("------")
+                    print("ppg_samples = np.array(")
+                    print(ppg_samples.tolist())
+                    print(")")
+                    print("=======")
             else:
                 # Repeat last sample
                 ppg_samples = np.tile(last_samples, (len(samples), 1))

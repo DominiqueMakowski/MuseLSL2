@@ -93,9 +93,7 @@ def view():
 
 class Canvas(app.Canvas):
     def __init__(self, eeg, ppg=None):
-        app.Canvas.__init__(
-            self, title="Muse - Use your wheel to zoom!", keys="interactive"
-        )
+        app.Canvas.__init__(self, title="Muse - Use your wheel to zoom!", keys="interactive")
 
         # Get info from stream
         eeg_info = _view_info(eeg)
@@ -115,15 +113,15 @@ class Canvas(app.Canvas):
 
         ppg = None
         ppg_info = None
-        # if ppg is not None:
-        #     ppg_info = _view_info(ppg)
-        #     self.ch_names += ppg_info["ch_names"]
-        #     self.n_channels += ppg_info["n_channels"]
-        #     colors += [
-        #         (244 / 255, 67 / 255, 54 / 255),  # Red
-        #         (244 / 255, 67 / 255, 54 / 255),  # Red
-        #         (244 / 255, 67 / 255, 54 / 255),  # Red
-        #     ]
+        if ppg is not None:
+            ppg_info = _view_info(ppg)
+            self.ch_names += ppg_info["ch_names"]
+            self.n_channels += ppg_info["n_channels"]
+            colors += [
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+                (244 / 255, 67 / 255, 54 / 255),  # Red
+            ]
 
         # Number of cols and rows in the table.
         n_rows = len(colors)
@@ -159,11 +157,13 @@ class Canvas(app.Canvas):
             text = visuals.TextVisual("", bold=True, color="white")
             self.display_quality.append(text)
 
+        # Store
         self.eeg = eeg_info["inlet"]
         self.ppg = False if ppg is None else ppg_info["inlet"]
         self.n_samples = eeg_info["n_samples"]
         self.sfreq = eeg_info["sfreq"]
 
+        # View
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
         gloo.set_viewport(0, 0, *self.physical_size)
         gloo.set_state(
@@ -182,19 +182,17 @@ class Canvas(app.Canvas):
         samples = np.array(samples)[:, ::-1]  # Reverse (newest on the right)
 
         # PPG ------------------------------------------------
-        if self.ppg:
-            ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
-            if len(ppg_samples) > 0:
-                ppg_samples = np.array(ppg_samples)[:, ::-1]
-                # For each eeg timestamp, find closest ppg timestamp
-                ppg_samples = np.array(
-                    [ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time]
-                )
-                # Concat with samples
-                samples = np.hstack([ppg_samples, samples])
-            else:
-                # Concat with samples
-                samples = np.hstack([np.zeros((len(samples), 3)), samples])
+        # if self.ppg:
+        #     ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
+        #     if len(ppg_samples) > 0:
+        #         ppg_samples = np.array(ppg_samples)[:, ::-1]
+        #         # For each eeg timestamp, find closest ppg timestamp
+        #         ppg_samples = np.array([ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time])
+        #         # Concat with samples
+        #         samples = np.hstack([ppg_samples, samples])
+        #     else:
+        #         # Concat with samples
+        #         samples = np.hstack([np.zeros((len(samples), 3)), samples])
 
         self.data = np.vstack([self.data, samples])  # Concat
         self.data = self.data[-self.n_samples :]  # Keep only last window length

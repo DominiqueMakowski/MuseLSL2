@@ -83,20 +83,9 @@ def stream(address, ppg=True, acc=True, gyro=True):
 
         gyro_outlet = bsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
 
-    # def push(data, timestamps, outlet):
-    #     print("=====================================")
-    #     print(data.shape)
-    #     print(timestamps.shape)
-    #     print("-------------------------")
-    #     print("Timestamps: ", timestamps)
-    #     print("-------------------------")
-    #     print("Data: ", data)
-    #     print("=====================================")
-    #     for i in range(data.shape[1]):
-    #         outlet.push_sample(data[:, i], timestamps[i])
-
     def push(data, timestamps, outlet):
-        outlet.push_sample(data, timestamps[-1])
+        for i in range(data.shape[1]):
+            outlet.push_sample(data[:, i], timestamps[i])
 
     push_eeg = partial(push, outlet=eeg_outlet)
     push_ppg = partial(push, outlet=ppg_outlet) if ppg else None

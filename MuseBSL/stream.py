@@ -5,6 +5,9 @@ import bsl.lsl
 from . import backends
 from .muse import Muse
 
+global debug
+debug = True
+
 
 # Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
 def stream(address, ppg=True, acc=True, gyro=True):
@@ -82,8 +85,6 @@ def stream(address, ppg=True, acc=True, gyro=True):
         gyro_info.set_channel_units("dps")
 
         gyro_outlet = bsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
-
-    debug = True
 
     def push(data, timestamps, outlet):
         if debug is True:

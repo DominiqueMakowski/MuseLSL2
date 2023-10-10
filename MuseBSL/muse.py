@@ -4,7 +4,8 @@ import numpy as np
 
 from .backends import BleakBackend
 
-# Constants
+# Constants (see https://mind-monitor.com/forums/viewtopic.php?t=1760)
+# ---------------------------------------------------------------------------------------------
 # 00001800-0000-1000-8000-00805f9b34fb Generic Access 0x05-0x0b
 # 00001801-0000-1000-8000-00805f9b34fb Generic Attribute 0x01-0x04
 ATTR_SERVICECHANGED = "00002a05-0000-1000-8000-00805f9b34fb"  # ble std 0x02-0x04
@@ -26,9 +27,7 @@ ATTR_TELEMETRY = "273e000b-4c4d-454d-96be-f03bac821358"  # 0x19-0x1b
 ATTR_PPG1 = "273e000f-4c4d-454d-96be-f03bac821358"  # ambient 0x37-0x39
 ATTR_PPG2 = "273e0010-4c4d-454d-96be-f03bac821358"  # infrared 0x3a-0x3c
 ATTR_PPG3 = "273e0011-4c4d-454d-96be-f03bac821358"  # red 0x3d-0x3f
-ATTR_THERMISTOR = (
-    "273e0012-4c4d-454d-96be-f03bac821358"  # muse S only, not implemented yet 0x40-0x42
-)
+ATTR_THERMISTOR = "273e0012-4c4d-454d-96be-f03bac821358"  # muse S only, not implemented yet 0x40-0x42
 
 
 class Muse:
@@ -489,9 +488,7 @@ class Muse:
             self.sample_index_ppg += 6
 
             # timestamps are extrapolated backwards based on sampling rate and current time
-            timestamps = (
-                self.reg_ppg_sample_rate[1] * idxs + self.reg_ppg_sample_rate[0]
-            )
+            timestamps = self.reg_ppg_sample_rate[1] * idxs + self.reg_ppg_sample_rate[0]
 
             # save last timestamp for disconnection timer
             self.last_timestamp = timestamps[-1]

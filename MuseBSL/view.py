@@ -179,6 +179,8 @@ class Canvas(app.Canvas):
 
         # EEG ------------------------------------------------
         samples, time = self.eeg.pull_chunk(timeout=0, max_samples=100)
+
+        # Update data
         if len(time) > 0:
             samples = samples[:, ::-1]  # Reverse channels
 
@@ -194,23 +196,8 @@ class Canvas(app.Canvas):
                     # Reverse and get closest
                     ppg_samples = ppg_samples[:, ::-1][closest_times, :]
                     # Store last sample
-                    try:
-                        last_samples = ppg_samples[-1, :]
-                    except:
-                        print("ERROR")
-                        print("=======")
-                        print("time = np.array(")
-                        print(time.tolist())
-                        print(")")
-                        print("------")
-                        print("ppg_time = np.array(")
-                        print(ppg_time.tolist())
-                        print(")")
-                        print("------")
-                        print("ppg_samples = np.array(")
-                        print(ppg_samples.tolist())
-                        print(")")
-                        print("=======")
+                    last_samples = ppg_samples[-1, :]
+
                 else:
                     # Repeat last sample
                     ppg_samples = np.tile(last_samples, (len(samples), 1))
@@ -229,7 +216,6 @@ class Canvas(app.Canvas):
         sd = np.std(plot_data[-int(self.sfreq) :, -5:], axis=0)[::-1] * 500
         # Discretize the impedence into 11 levels for coloring
         co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
-
         # Loop through the 5 last channels indices (EEG channels)
         for i in range(5):
             self.display_quality[i].text = f"{sd[i]:.2f}"
@@ -238,6 +224,14 @@ class Canvas(app.Canvas):
 
             self.display_names[i].font_size = 12 + co[i]
             self.display_names[i].color = self.colors_quality[co[i]]
+
+        # Normalize PPG (3 channels) --------------------
+        if self.ppg:
+            try:
+                plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.std(plot_data[:, 0:3])
+            except:
+                print("====")
+                print(plot_data.tolist())
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

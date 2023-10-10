@@ -96,7 +96,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
     #         outlet.push_sample(data[:, i], timestamps[i])
 
     def push(data, timestamps, outlet):
-        outlet.push_sample(data, timestamps)
+        outlet.push_sample(data, timestamps[-1])
 
     push_eeg = partial(push, outlet=eeg_outlet)
     push_ppg = partial(push, outlet=ppg_outlet) if ppg else None

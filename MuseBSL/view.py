@@ -102,11 +102,11 @@ class Canvas(app.Canvas):
 
         # Channel colors
         colors = [
-            (255 / 255, 87 / 255, 34 / 255),  # Orange
-            (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
-            (33 / 255, 150 / 255, 243 / 255),  # Dark blue
-            (3 / 255, 169 / 255, 244 / 255),  # Blue
             (142 / 255, 39 / 255, 176 / 255),  # Purple
+            (3 / 255, 169 / 255, 244 / 255),  # Blue
+            (33 / 255, 150 / 255, 243 / 255),  # Dark blue
+            (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
+            (0 / 255, 0 / 255, 0 / 255),  # Black
         ]
         # Colors for impedence
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]

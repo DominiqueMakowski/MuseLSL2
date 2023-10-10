@@ -111,7 +111,8 @@ class Canvas(app.Canvas):
         # Colors for impedence
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
-        # ppg = None
+        # PPG
+        # ppg = None  # Toggle that to test without PPG
         ppg_info = None
         if ppg is not None:
             ppg_info = _view_info(ppg)
@@ -182,18 +183,16 @@ class Canvas(app.Canvas):
 
         # PPG ------------------------------------------------
         if self.ppg:
-            samples = np.hstack([np.zeros((len(samples), 3)), samples])
-
-            # ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
-            # if len(ppg_samples) > 0:
-            #     ppg_samples = np.array(ppg_samples)[:, ::-1]
-            #     # For each eeg timestamp, find closest ppg timestamp
-            #     ppg_samples = np.array([ppg_samples[np.argmin(np.abs(ppg_time - t)), :] for t in time])
-            #     # Concat with samples
-            #     samples = np.hstack([ppg_samples, samples])
-            # else:
-            #     # Concat with samples
-            #     samples = np.hstack([np.zeros((len(samples), 3)), samples])
+            # samples = np.hstack([np.zeros((len(samples), 3)), samples])
+            ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
+            if len(ppg_samples) > 0:
+                # For each eeg timestamp, find closest ppg timestamp
+                closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)
+                # Concat with samples
+                samples = np.hstack([ppg_samples[closest_times, :], samples])
+            else:
+                # Concat with samples
+                samples = np.hstack([np.zeros((len(samples), 3)), samples])
 
         self.data = np.vstack([self.data, samples])  # Concat
         self.data = self.data[-self.n_samples :]  # Keep only last window length

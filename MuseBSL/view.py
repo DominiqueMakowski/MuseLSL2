@@ -188,12 +188,19 @@ class Canvas(app.Canvas):
             last_samples = np.zeros(3)
             ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
             if len(ppg_samples) > 0:
+                print("=======")
+                print("time = ")
+                print(time.tolist())
+                print("------")
+                print("ppg_time = ")
+                print(ppg_time.tolist())
+                print("=======")
                 # For each eeg timestamp, find closest ppg timestamp
                 closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)
                 # Reverse and get closest
                 ppg_samples = ppg_samples[:, ::-1][closest_times, :]
                 # Store last sample
-                last_samples = ppg_samples[-1, :]
+                # last_samples = ppg_samples[-1, :]
             else:
                 # Repeat last sample
                 ppg_samples = np.tile(last_samples, (len(samples), 1))

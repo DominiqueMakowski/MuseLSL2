@@ -111,7 +111,7 @@ class Canvas(app.Canvas):
         # Colors for impedence
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
-        ppg = None
+        # ppg = None
         ppg_info = None
         if ppg is not None:
             ppg_info = _view_info(ppg)

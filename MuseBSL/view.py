@@ -197,13 +197,13 @@ class Canvas(app.Canvas):
 
                 # last_samples = ppg_samples[-1, :]
                 print("REAL------------")
-                print(ppg_samples)
+                print(ppg_samples.tolist())
                 print("------------")
             else:
                 # Concat with samples
                 samples = np.hstack([np.zeros((len(samples), 3)), samples])
                 print("EMPTY------------")
-                np.zeros((len(samples), 3))
+                print(np.zeros((len(samples), 3)).tolist())
                 print("------------")
 
         self.data = np.vstack([self.data, samples])  # Concat

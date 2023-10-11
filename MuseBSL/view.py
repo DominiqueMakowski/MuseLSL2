@@ -201,6 +201,12 @@ class Canvas(app.Canvas):
                 else:
                     # Repeat last sample
                     ppg_samples = np.tile(last_samples, (len(samples), 1))
+                    print("====")
+                    print(ppg_samples.tolist())
+                    print("----")
+                    print(self.data[:, 0:4].tolist())
+                    # ppg_samples = self.data[:, 0:4]
+
                 # Concat with samples
                 samples = np.hstack([ppg_samples, samples])
 
@@ -227,11 +233,7 @@ class Canvas(app.Canvas):
 
         # Normalize PPG (3 channels) --------------------
         if self.ppg:
-            try:
-                plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.std(plot_data[:, 0:3])
-            except:
-                print("====")
-                print(plot_data.tolist())
+            plot_data[:, 0:4] = (plot_data[:, 0:4] - plot_data[:, 0:4].mean(axis=0)) / np.std(plot_data[:, 0:4])
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

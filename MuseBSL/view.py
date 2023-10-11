@@ -224,9 +224,7 @@ class Canvas(app.Canvas):
 
         # Normalize PPG (3 channels) --------------------
         if self.ppg:
-            print("====")
-            print(plot_data[:, 0:3].tolist())
-            plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.std(plot_data[:, 0:3])
+            plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.std(plot_data[:, 0:3], axis=0)
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

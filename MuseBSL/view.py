@@ -188,24 +188,17 @@ class Canvas(app.Canvas):
             if self.ppg:
                 # samples = np.hstack([np.zeros((len(samples), 3)), samples])
 
-                last_samples = np.zeros(3)
                 ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
                 if len(ppg_samples) > 0:
                     # For each eeg timestamp, find closest ppg timestamp
                     closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)
                     # Reverse and get closest
                     ppg_samples = ppg_samples[:, ::-1][closest_times, :]
-                    # Store last sample
-                    last_samples = ppg_samples[-1, :]
 
                 else:
-                    # Repeat last sample
-                    ppg_samples = np.tile(last_samples, (len(samples), 1))
-                    print("====")
-                    print(ppg_samples.tolist())
-                    print("----")
-                    print(self.data[:, 0:4].tolist())
-                    # ppg_samples = self.data[:, 0:4]
+                    ppg_samples = np.tile(self.data[-1, 0:3], (len(samples), 1))
+                    # print("====")
+                    # print(ppg_samples.tolist())
 
                 # Concat with samples
                 samples = np.hstack([ppg_samples, samples])
@@ -233,7 +226,7 @@ class Canvas(app.Canvas):
 
         # Normalize PPG (3 channels) --------------------
         if self.ppg:
-            plot_data[:, 0:4] = (plot_data[:, 0:4] - plot_data[:, 0:4].mean(axis=0)) / np.std(plot_data[:, 0:4])
+            plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.std(plot_data[:, 0:3])
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

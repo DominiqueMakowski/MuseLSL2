@@ -75,6 +75,7 @@ def view():
     print("Looking for a stream...")
     eeg = bsl.lsl.resolve_streams(stype="EEG", timeout=5)
     ppg = bsl.lsl.resolve_streams(stype="PPG", timeout=5)
+    acc = bsl.lsl.resolve_streams(stype="ACC", timeout=5)
 
     if len(eeg) == 0:
         raise RuntimeError("Can't find EEG stream.")
@@ -84,15 +85,19 @@ def view():
         ppg = None
     else:
         ppg = bsl.lsl.StreamInlet(ppg[0])
+    if len(acc) == 0:
+        acc = None
+    else:
+        acc = bsl.lsl.StreamInlet(acc[0])
 
     print("Start acquiring data.")
 
-    Canvas(eeg=eeg, ppg=ppg)
+    Canvas(eeg=eeg, ppg=ppg, acc=acc)
     app.run()
 
 
 class Canvas(app.Canvas):
-    def __init__(self, eeg, ppg=None):
+    def __init__(self, eeg, ppg=None, acc=None):
         app.Canvas.__init__(self, title="Muse - Use your wheel to zoom!", keys="interactive")
 
         # Get info from stream
@@ -111,18 +116,30 @@ class Canvas(app.Canvas):
         # Colors for impedence
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
-        # PPG
-        # ppg = None  # Toggle that to test without PPG
+        # PPG ------------------------------------------------
         ppg_info = None
         if ppg is not None:
             ppg_info = _view_info(ppg)
             self.ch_names += ppg_info["ch_names"]
             self.n_channels += ppg_info["n_channels"]
             colors += [
+                (230 / 255, 75 / 255, 25 / 255),  # Red
                 (244 / 255, 67 / 255, 54 / 255),  # Red
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-                (244 / 255, 67 / 255, 54 / 255),  # Red
+                (194 / 255, 24 / 255, 91 / 255),  # Red
             ]
+
+        # ACC ------------------------------------------------
+        acc = None
+        # acc_info = None
+        # if acc is not None:
+        #     acc_info = _view_info(acc)
+        #     self.ch_names += acc_info["ch_names"]
+        #     self.n_channels += acc_info["n_channels"]
+        #     colors += [
+        #         (205 / 255, 220 / 255, 57 / 255),  # Green
+        #         (76 / 255, 175 / 255, 800 / 255),  # Green
+        #         (0 / 255, 150 / 255, 136 / 255),  # Green
+        #     ]
 
         # Number of cols and rows in the table.
         n_rows = len(colors)
@@ -174,6 +191,21 @@ class Canvas(app.Canvas):
 
         self.show()
 
+    def update_data(self, outlet, time, n_channels=3):
+        new_samples, new_time = outlet.pull_chunk(timeout=0, max_samples=100)
+        if len(new_samples) > 0:
+            # For each eeg timestamp, find closest ppg timestamp
+            closest_times = np.argmin(np.abs(new_time[:, np.newaxis] - time), axis=0)
+            # Reverse and get closest
+            new_samples = new_samples[:, ::-1][closest_times, :]
+
+        else:
+            new_samples = np.tile(self.data[-1, 0:n_channels], (len(samples), 1))
+
+        # Concat with samples
+        samples = np.hstack([new_samples, samples])
+        return samples
+
     def on_timer(self, event):
         """Add some data at the end of each signal (real-time signals)."""
 
@@ -186,20 +218,20 @@ class Canvas(app.Canvas):
 
             # PPG ------------------------------------------------
             if self.ppg:
-                # samples = np.hstack([np.zeros((len(samples), 3)), samples])
+                samples = self.update_data(outlet=self.ppg, time=time, n_channels=3)
 
-                ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
-                if len(ppg_samples) > 0:
-                    # For each eeg timestamp, find closest ppg timestamp
-                    closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)
-                    # Reverse and get closest
-                    ppg_samples = ppg_samples[:, ::-1][closest_times, :]
+                # ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
+                # if len(ppg_samples) > 0:
+                #     # For each eeg timestamp, find closest ppg timestamp
+                #     closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)
+                #     # Reverse and get closest
+                #     ppg_samples = ppg_samples[:, ::-1][closest_times, :]
 
-                else:
-                    ppg_samples = np.tile(self.data[-1, 0:3], (len(samples), 1))
+                # else:
+                #     ppg_samples = np.tile(self.data[-1, 0:3], (len(samples), 1))
 
-                # Concat with samples
-                samples = np.hstack([ppg_samples, samples])
+                # # Concat with samples
+                # samples = np.hstack([ppg_samples, samples])
 
             self.data = np.vstack([self.data, samples])  # Concat
             self.data = self.data[-self.n_samples :]  # Keep only last window length

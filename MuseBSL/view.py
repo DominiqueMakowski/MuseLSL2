@@ -75,7 +75,6 @@ def view():
     print("Looking for a stream...")
     eeg = mne_lsl.lsl.resolve_streams(stype="EEG", timeout=5)
     ppg = mne_lsl.lsl.resolve_streams(stype="PPG", timeout=5)
-    acc = mne_lsl.lsl.resolve_streams(stype="ACC", timeout=5)
 
     if len(eeg) == 0:
         raise RuntimeError("Can't find EEG stream.")
@@ -85,19 +84,15 @@ def view():
         ppg = None
     else:
         ppg = mne_lsl.lsl.StreamInlet(ppg[0])
-    if len(acc) == 0:
-        acc = None
-    else:
-        acc = mne_lsl.lsl.StreamInlet(acc[0])
 
     print("Start acquiring data.")
 
-    Canvas(eeg=eeg, ppg=ppg, acc=acc)
+    Canvas(eeg=eeg, ppg=ppg)
     app.run()
 
 
 class Canvas(app.Canvas):
-    def __init__(self, eeg, ppg=None, acc=None):
+    def __init__(self, eeg, ppg=None):
         app.Canvas.__init__(self, title="Muse - Use your wheel to zoom!", keys="interactive")
 
         # Get info from stream
@@ -123,23 +118,10 @@ class Canvas(app.Canvas):
             self.ch_names += ppg_info["ch_names"]
             self.n_channels += ppg_info["n_channels"]
             colors += [
-                (230 / 255, 75 / 255, 25 / 255),  # Red
-                (244 / 255, 67 / 255, 54 / 255),  # Red
-                (194 / 255, 24 / 255, 91 / 255),  # Red
+                (255 / 255, 193 / 255, 7 / 255),  # Lux
+                (244 / 255, 67 / 255, 54 / 255),  # PPG
+                (194 / 255, 24 / 255, 91 / 255),  # RED
             ]
-
-        # ACC ------------------------------------------------
-        acc = None
-        # acc_info = None
-        # if acc is not None:
-        #     acc_info = _view_info(acc)
-        #     self.ch_names += acc_info["ch_names"]
-        #     self.n_channels += acc_info["n_channels"]
-        #     colors += [
-        #         (205 / 255, 220 / 255, 57 / 255),  # Green
-        #         (76 / 255, 175 / 255, 800 / 255),  # Green
-        #         (0 / 255, 150 / 255, 136 / 255),  # Green
-        #     ]
 
         # Number of cols and rows in the table.
         n_rows = len(colors)
@@ -220,19 +202,6 @@ class Canvas(app.Canvas):
             if self.ppg:
                 samples = self.update_data(outlet=self.ppg, samples=samples, time=time, n_channels=3)
 
-                # ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
-                # if len(ppg_samples) > 0:
-                #     # For each eeg timestamp, find closest ppg timestamp
-                #     closest_times = np.argmin(np.abs(ppg_time[:, np.newaxis] - time), axis=0)
-                #     # Reverse and get closest
-                #     ppg_samples = ppg_samples[:, ::-1][closest_times, :]
-
-                # else:
-                #     ppg_samples = np.tile(self.data[-1, 0:3], (len(samples), 1))
-
-                # # Concat with samples
-                # samples = np.hstack([ppg_samples, samples])
-
             self.data = np.vstack([self.data, samples])  # Concat
             self.data = self.data[-self.n_samples :]  # Keep only last window length
 
@@ -256,7 +225,9 @@ class Canvas(app.Canvas):
 
         # Normalize PPG (3 channels) --------------------
         if self.ppg:
-            plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.std(plot_data[:, 0:3], axis=0)
+            plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.nanstd(
+                plot_data[:, 0:3], axis=0
+            )
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

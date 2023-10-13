@@ -12,10 +12,11 @@ setup(
     install_requires=[
         "numpy",
         "matplotlib",
-        "https://github.com/mne-tools/mne-lsl/zipball/main",  # Replaces lsl
+        "mne_lsl",  # Replaces lsl
         "bleak",  # Bluetooth backend
         "bitstring",  # For decoding Muse packets
         "vispy",  # Visualization
     ],
+    dependency_links=['https://github.com/mne-tools/mne-lsl/zipball/main']
     packages=find_packages(),
 )

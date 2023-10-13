@@ -1,6 +1,6 @@
 from functools import partial
 
-import bsl.lsl
+import mne_lsl.lsl
 
 from . import backends
 from .muse import Muse
@@ -16,7 +16,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         address = device["address"]
 
     # EEG ====================================================
-    eeg_info = bsl.lsl.StreamInfo(
+    eeg_info = mne_lsl.lsl.StreamInfo(
         "Muse",
         stype="EEG",
         n_channels=5,
@@ -29,11 +29,11 @@ def stream(address, ppg=True, acc=True, gyro=True):
     eeg_info.set_channel_types(["eeg"] * 5)
     eeg_info.set_channel_units("microvolts")
 
-    eeg_outlet = bsl.lsl.StreamOutlet(eeg_info, chunk_size=6)
+    eeg_outlet = mne_lsl.lsl.StreamOutlet(eeg_info, chunk_size=6)
 
     # PPG ====================================================
     if ppg is True:
-        ppg_info = bsl.lsl.StreamInfo(
+        ppg_info = mne_lsl.lsl.StreamInfo(
             "Muse",
             stype="PPG",
             n_channels=3,
@@ -47,11 +47,11 @@ def stream(address, ppg=True, acc=True, gyro=True):
         ppg_info.set_channel_types(["ppg"] * 3)
         ppg_info.set_channel_units("mmHg")
 
-        ppg_outlet = bsl.lsl.StreamOutlet(ppg_info, chunk_size=3)
+        ppg_outlet = mne_lsl.lsl.StreamOutlet(ppg_info, chunk_size=3)
 
     # ACC ====================================================
     if acc:
-        acc_info = bsl.lsl.StreamInfo(
+        acc_info = mne_lsl.lsl.StreamInfo(
             "Muse",
             stype="ACC",
             n_channels=3,
@@ -64,11 +64,11 @@ def stream(address, ppg=True, acc=True, gyro=True):
         acc_info.set_channel_types(["accelerometer"] * 3)
         acc_info.set_channel_units("g")
 
-        acc_outlet = bsl.lsl.StreamOutlet(acc_info, chunk_size=1)
+        acc_outlet = mne_lsl.lsl.StreamOutlet(acc_info, chunk_size=1)
 
     # GYRO ====================================================
     if gyro:
-        gyro_info = bsl.lsl.StreamInfo(
+        gyro_info = mne_lsl.lsl.StreamInfo(
             "Muse",
             stype="GYRO",
             n_channels=3,
@@ -81,7 +81,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         gyro_info.set_channel_types(["gyroscope"] * 3)
         gyro_info.set_channel_units("dps")
 
-        gyro_outlet = bsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
+        gyro_outlet = mne_lsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
 
     def push(data, timestamps, outlet):
         outlet.push_chunk(data.T, timestamps[-1])
@@ -112,7 +112,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         print(f"Streaming... EEG{ppg_txt}{acc_txt}{gyro_txt}... (CTRL + C to interrupt)")
 
         # Disconnect if no data is received for 60 seconds
-        while bsl.lsl.local_clock() - muse.last_timestamp < 60:
+        while mne_lsl.lsl.local_clock() - muse.last_timestamp < 60:
             try:
                 backends.sleep(1)
             except KeyboardInterrupt:
@@ -120,6 +120,6 @@ def stream(address, ppg=True, acc=True, gyro=True):
                 print("Stream interrupted. Stopping...")
                 break
 
-        if bsl.lsl.local_clock() - muse.last_timestamp > 60:
+        if mne_lsl.lsl.local_clock() - muse.last_timestamp > 60:
             print("No data received for 60 seconds. Disconnecting...")
         print("Disconnected.")

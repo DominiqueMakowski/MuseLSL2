@@ -8,8 +8,8 @@ Multiple real-time digital signals with GLSL-based clipping.
 """
 
 
-import bsl
 import matplotlib.pyplot as plt
+import mne_lsl.lsl
 import numpy as np
 from vispy import app, gloo, visuals
 
@@ -73,22 +73,22 @@ void main() {
 
 def view():
     print("Looking for a stream...")
-    eeg = bsl.lsl.resolve_streams(stype="EEG", timeout=5)
-    ppg = bsl.lsl.resolve_streams(stype="PPG", timeout=5)
-    acc = bsl.lsl.resolve_streams(stype="ACC", timeout=5)
+    eeg = mne_lsl.lsl.resolve_streams(stype="EEG", timeout=5)
+    ppg = mne_lsl.lsl.resolve_streams(stype="PPG", timeout=5)
+    acc = mne_lsl.lsl.resolve_streams(stype="ACC", timeout=5)
 
     if len(eeg) == 0:
         raise RuntimeError("Can't find EEG stream.")
     else:
-        eeg = bsl.lsl.StreamInlet(eeg[0])
+        eeg = mne_lsl.lsl.StreamInlet(eeg[0])
     if len(ppg) == 0:
         ppg = None
     else:
-        ppg = bsl.lsl.StreamInlet(ppg[0])
+        ppg = mne_lsl.lsl.StreamInlet(ppg[0])
     if len(acc) == 0:
         acc = None
     else:
-        acc = bsl.lsl.StreamInlet(acc[0])
+        acc = mne_lsl.lsl.StreamInlet(acc[0])
 
     print("Start acquiring data.")
 

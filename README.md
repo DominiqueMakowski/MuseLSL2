@@ -34,3 +34,7 @@ In a new console, while streaming, run:
 ```
 MuseLSL2 view
 ```
+
+## Record
+
+Best is to record the streams using [Lab Recorder](https://github.com/labstreaminglayer/App-LabRecorder).

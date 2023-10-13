@@ -17,6 +17,8 @@ setup(
         "bitstring",  # For decoding Muse packets
         "vispy",  # Visualization
     ],
-    dependency_links=['https://github.com/mne-tools/mne-lsl/zipball/main']
+    dependency_links=[
+        "https://github.com/mne-tools/mne-lsl/zipball/main",
+    ],
     packages=find_packages(),
 )

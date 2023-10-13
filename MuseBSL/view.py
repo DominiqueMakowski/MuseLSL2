@@ -191,7 +191,7 @@ class Canvas(app.Canvas):
 
         self.show()
 
-    def update_data(self, outlet, time, n_channels=3):
+    def update_data(self, outlet, samples, time, n_channels=3):
         new_samples, new_time = outlet.pull_chunk(timeout=0, max_samples=100)
         if len(new_samples) > 0:
             # For each eeg timestamp, find closest ppg timestamp
@@ -218,7 +218,7 @@ class Canvas(app.Canvas):
 
             # PPG ------------------------------------------------
             if self.ppg:
-                samples = self.update_data(outlet=self.ppg, time=time, n_channels=3)
+                samples = self.update_data(outlet=self.ppg, samples=samples, time=time, n_channels=3)
 
                 # ppg_samples, ppg_time = self.ppg.pull_chunk(timeout=0, max_samples=100)
                 # if len(ppg_samples) > 0:

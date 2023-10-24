@@ -47,7 +47,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         ppg_info.set_channel_types(["ppg"] * 3)
         ppg_info.set_channel_units("mmHg")
 
-        ppg_outlet = mne_lsl.lsl.StreamOutlet(ppg_info, chunk_size=3)
+        ppg_outlet = mne_lsl.lsl.StreamOutlet(ppg_info, chunk_size=1)
 
     # ACC ====================================================
     if acc:

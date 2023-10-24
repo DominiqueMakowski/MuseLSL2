@@ -119,8 +119,8 @@ class Canvas(app.Canvas):
             self.n_channels += ppg_info["n_channels"]
             colors += [
                 (255 / 255, 193 / 255, 7 / 255),  # Lux
-                (244 / 255, 67 / 255, 54 / 255),  # PPG
                 (194 / 255, 24 / 255, 91 / 255),  # RED
+                (244 / 255, 67 / 255, 54 / 255),  # IR
             ]
 
         # Number of cols and rows in the table.

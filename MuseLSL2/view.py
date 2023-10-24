@@ -93,7 +93,7 @@ def view():
 
 class Canvas(app.Canvas):
     def __init__(self, eeg, ppg=None):
-        app.Canvas.__init__(self, title="Muse - Use your wheel to zoom!", keys="interactive")
+        app.Canvas.__init__(self, title="MuseLSL2 - Use your wheel to zoom!", keys="interactive")
 
         # Get info from stream
         eeg_info = _view_info(eeg)

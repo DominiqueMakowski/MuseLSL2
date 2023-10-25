@@ -25,7 +25,7 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         source_id=f"Muse_{address}",
     )
     eeg_info.desc.append_child_value("manufacturer", "Muse")
-    eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10", "AUX_RIGHT"])
+    eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10", "AUX"])
     eeg_info.set_channel_types(["eeg"] * 5)
     eeg_info.set_channel_units("microvolts")
 

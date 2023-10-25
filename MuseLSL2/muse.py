@@ -42,7 +42,7 @@ class Muse:
         callback_acc=None,
         callback_gyro=None,
         callback_ppg=None,
-        preset=21,
+        preset=None,
         disable_light=False,
     ):
         """Initialize
@@ -183,20 +183,18 @@ class Muse:
         """Keep streaming, sending 'k' command"""
         self._write_cmd_str("k")
 
-    def select_preset(self, preset=21):
+    def select_preset(self, preset="p20"):
         """Set preset for headband configuration
 
         See details here https://articles.jaredcamins.com/figuring-out-bluetooth-low-energy-part-2-750565329a7d
         For 2016 headband, possible choice are 'p20' and 'p21'.
         Untested but possible values include 'p22','p23','p31','p32','p50','p51','p52','p53','p60','p61','p63','pAB','pAD'
-        Default is 'p21'."""
+        Default is 'p20'."""
 
         if type(preset) is int:
             preset = str(preset)
         if preset[0] == "p":
             preset = preset[1:]
-        if str(preset) != "21":
-            print("Sending command for non-default preset: p" + preset)
         preset = bytes(preset, "utf-8")
         self._write_cmd([0x04, 0x70, *preset, 0x0A])
 

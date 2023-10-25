@@ -41,3 +41,4 @@ MuseLSL2 view
 ## Record
 
 Best is to record the streams using [Lab Recorder](https://github.com/labstreaminglayer/App-LabRecorder).
+

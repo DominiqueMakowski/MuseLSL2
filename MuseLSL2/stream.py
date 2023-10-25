@@ -7,7 +7,7 @@ from .muse import Muse
 
 
 # Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
-def stream(address, ppg=True, acc=True, gyro=True):
+def stream(address, ppg=True, acc=True, gyro=True, preset=None):
     # Find device
     if not address:
         from .find import find_devices
@@ -97,7 +97,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         callback_ppg=push_ppg,
         callback_acc=push_acc,
         callback_gyro=push_gyro,
-        preset="p20",
+        preset=preset,
     )
 
     didConnect = muse.connect()

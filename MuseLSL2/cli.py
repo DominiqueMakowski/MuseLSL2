@@ -14,9 +14,7 @@ class CLI:
         find_devices(max_duration=10, verbose=True)
 
     def stream(self):
-        parser = argparse.ArgumentParser(
-            description="Start an LSL stream from Muse headset."
-        )
+        parser = argparse.ArgumentParser(description="Start an LSL stream from Muse headset.")
         parser.add_argument(
             "-a",
             "--address",
@@ -46,11 +44,18 @@ class CLI:
             action="store_false",
             help="Disable streaming of gyroscope data",
         )
+        parser.add_argument(
+            "-P",
+            "--preset",
+            default=None,
+            type=int,
+            help="Select preset which dictates data channels to be streamed",
+        )
 
         args = parser.parse_args(sys.argv[2:])
         from .stream import stream
 
-        stream(args.address, args.ppg, args.acc, args.gyro)
+        stream(args.address, args.ppg, args.acc, args.gyro, args.preset)
 
     def view(self):
         from .view import view

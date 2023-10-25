@@ -87,7 +87,7 @@ def view():
 
     print("Start acquiring data.")
 
-    Canvas(eeg=eeg, ppg=None)
+    Canvas(eeg=eeg, ppg=ppg)
     app.run()
 
 

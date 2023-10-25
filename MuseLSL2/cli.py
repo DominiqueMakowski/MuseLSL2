@@ -47,9 +47,9 @@ class CLI:
         parser.add_argument(
             "-P",
             "--preset",
-            default=None,
-            type=int,
-            help="Select preset which dictates data channels to be streamed",
+            default="p50",
+            type=str,
+            help="Select preset which dictates data channels to be streamed. Default is p50, but can also be 'none'",
         )
 
         args = parser.parse_args(sys.argv[2:])

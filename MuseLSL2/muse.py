@@ -82,7 +82,9 @@ class Muse:
         self.adapter = BleakBackend()
         self.adapter.start()
         self.device = self.adapter.connect(self.address)
-        if self.preset != None:
+
+        # Send a preset to the device to enable some functionalities
+        if self.preset not in ["none", "None"]:
             self.select_preset(self.preset)
 
         # subscribes to EEG stream
@@ -183,13 +185,22 @@ class Muse:
         """Keep streaming, sending 'k' command"""
         self._write_cmd_str("k")
 
-    def select_preset(self, preset="p21"):
+    def select_preset(self, preset="p50"):
         """Set preset for headband configuration
 
         See details here https://articles.jaredcamins.com/figuring-out-bluetooth-low-energy-part-2-750565329a7d
         For 2016 headband, possible choice are 'p20' and 'p21'.
+
+        p20 - 5-Channel EEG channel streaming
+        p21 - 4-Channel EEG channel streaming
+        p22 - 4-Channel EEG channel streaming without accel/gyro
+        p23 = only 5 eeg
+        p31 = weird
+        p32 = weird
+        p50 = Same as 20, but includes PPG data
+        p51 = Same as 21, but includes PPG data
         Untested but possible values include 'p22','p23','p31','p32','p50','p51','p52','p53','p60','p61','p63','pAB','pAD'
-        Default is 'p21'."""
+        Default is 'p50'."""
 
         if type(preset) is int:
             preset = str(preset)

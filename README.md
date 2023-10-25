@@ -9,6 +9,9 @@ This is a light reimplementation of [muse-lsl](https://github.com/alexandrebarac
 
 ![](MuseLSL2_viewer.gif)
 
+By default, MuseLSL2 streams *all* channels (including gyroscope, accelerometer, and the signal form the Auxiliary port "AUX", which can be used to add [an additional electrode](https://github.com/andrewjsauer/Muse-EEG-Extra-Electrode-Tutorial)). Note that without an additional electrode, the AUX channel will just pick up noise and should be discarded.
+
+
 ## Usage
 
 Install with:

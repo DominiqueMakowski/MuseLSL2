@@ -97,7 +97,7 @@ def stream(address, ppg=True, acc=True, gyro=True):
         callback_ppg=push_ppg,
         callback_acc=push_acc,
         callback_gyro=push_gyro,
-        preset="20",
+        preset="p20",
     )
 
     didConnect = muse.connect()

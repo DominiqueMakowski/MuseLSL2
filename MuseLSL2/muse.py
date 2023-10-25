@@ -42,7 +42,7 @@ class Muse:
         callback_acc=None,
         callback_gyro=None,
         callback_ppg=None,
-        preset=None,
+        preset=21,
         disable_light=False,
     ):
         """Initialize

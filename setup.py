@@ -16,6 +16,7 @@ setup(
         "bleak",  # Bluetooth backend
         "bitstring",  # For decoding Muse packets
         "vispy",  # Visualization
+        "PyQt6",  # Visualization
     ],
     dependency_links=[
         "https://github.com/mne-tools/mne-lsl/zipball/main",

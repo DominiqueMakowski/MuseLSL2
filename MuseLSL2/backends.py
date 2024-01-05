@@ -10,10 +10,9 @@ def _wait(coroutine):
     return loop.run_until_complete(coroutine)
 
 
-def sleep(seconds):
-    # I am not sure how this works but it is needed.
-    # Probably has to do something with the "global" declaration below
-    time.sleep(seconds)
+def sleep_fx(seconds):
+    # This is export only
+    _wait(asyncio.sleep(seconds))
 
 
 class BleakBackend:

@@ -115,7 +115,7 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         # Disconnect if no data is received for 60 seconds
         while mne_lsl.lsl.local_clock() - muse.last_timestamp < 60:
             try:
-                backends.sleep(1)
+                backends.sleep_fx(1)
             except KeyboardInterrupt:
                 muse.stop()
                 print("Stream interrupted. Stopping...")

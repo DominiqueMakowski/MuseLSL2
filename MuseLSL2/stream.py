@@ -1,15 +1,9 @@
 from functools import partial
-import os
 
 from . import backends
 
 
 def stream(address, ppg=True, acc=True, gyro=True, preset=None):
-    # Configure liblsl logging to avoid multicast noise (Windows: NUL)
-    os.environ.setdefault("LSL_LOG_LEVEL", "off")
-    os.environ.setdefault("LSL_DEBUGLEVEL", "0")
-    os.environ.setdefault("LSL_LOG_FILE", "NUL")
-
     import mne_lsl.lsl
     from .muse import Muse
 

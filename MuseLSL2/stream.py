@@ -1,13 +1,18 @@
 from functools import partial
-
-import mne_lsl.lsl
+import os
 
 from . import backends
-from .muse import Muse
 
 
-# Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
 def stream(address, ppg=True, acc=True, gyro=True, preset=None):
+    # Configure liblsl logging to avoid multicast noise (Windows: NUL)
+    os.environ.setdefault("LSL_LOG_LEVEL", "off")
+    os.environ.setdefault("LSL_DEBUGLEVEL", "0")
+    os.environ.setdefault("LSL_LOG_FILE", "NUL")
+
+    import mne_lsl.lsl
+    from .muse import Muse
+
     # Find device
     if not address:
         from .find import find_devices
@@ -32,6 +37,7 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
     eeg_outlet = mne_lsl.lsl.StreamOutlet(eeg_info, chunk_size=6)
 
     # PPG ====================================================
+    ppg_outlet = None
     if ppg is True:
         ppg_info = mne_lsl.lsl.StreamInfo(
             "Muse",
@@ -47,9 +53,11 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         ppg_info.set_channel_types(["ppg"] * 3)
         ppg_info.set_channel_units("mmHg")
 
-        ppg_outlet = mne_lsl.lsl.StreamOutlet(ppg_info, chunk_size=1)
+        if ppg_info is not None:
+            ppg_outlet = mne_lsl.lsl.StreamOutlet(ppg_info, chunk_size=1)
 
     # ACC ====================================================
+    acc_outlet = None
     if acc:
         acc_info = mne_lsl.lsl.StreamInfo(
             "Muse",
@@ -64,9 +72,11 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         acc_info.set_channel_types(["accelerometer"] * 3)
         acc_info.set_channel_units("g")
 
-        acc_outlet = mne_lsl.lsl.StreamOutlet(acc_info, chunk_size=1)
+        if acc_info is not None:
+            acc_outlet = mne_lsl.lsl.StreamOutlet(acc_info, chunk_size=1)
 
     # GYRO ====================================================
+    gyro_outlet = None
     if gyro:
         gyro_info = mne_lsl.lsl.StreamInfo(
             "Muse",
@@ -81,7 +91,8 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         gyro_info.set_channel_types(["gyroscope"] * 3)
         gyro_info.set_channel_units("dps")
 
-        gyro_outlet = mne_lsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
+        if gyro_info is not None:
+            gyro_outlet = mne_lsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
 
     def push(data, timestamps, outlet):
         outlet.push_chunk(data.T, timestamps[-1])
@@ -110,14 +121,19 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         acc_txt = ", ACC" if acc else ""
         gyro_txt = ", GYRO" if gyro else ""
 
-        print(f"Streaming... EEG{ppg_txt}{acc_txt}{gyro_txt}... (CTRL + C to interrupt)")
+        print(
+            f"Streaming... EEG{ppg_txt}{acc_txt}{gyro_txt}... (CTRL + C to interrupt)"
+        )
 
         # Disconnect if no data is received for 60 seconds
         while mne_lsl.lsl.local_clock() - muse.last_timestamp < 60:
             try:
                 backends.sleep(1)
             except KeyboardInterrupt:
-                muse.stop()
+                try:
+                    muse.stop()
+                except Exception:
+                    pass
                 print("Stream interrupted. Stopping...")
                 break
 

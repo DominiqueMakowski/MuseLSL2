@@ -93,7 +93,9 @@ def view():
 
 class Canvas(app.Canvas):
     def __init__(self, eeg, ppg=None):
-        app.Canvas.__init__(self, title="MuseLSL2 - Use your wheel to zoom!", keys="interactive")
+        app.Canvas.__init__(
+            self, title="MuseLSL2 - Use your wheel to zoom!", keys="interactive"
+        )
 
         # Get info from stream
         eeg_info = _view_info(eeg)
@@ -141,7 +143,9 @@ class Canvas(app.Canvas):
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program["a_position"] = self.data.T.astype(np.float32).reshape(-1, 1)
         self.program["a_index"] = index
-        self.program["a_color"] = np.repeat(colors[::-1], eeg_info["n_samples"], axis=0).astype(np.float32)
+        self.program["a_color"] = np.repeat(
+            colors[::-1], eeg_info["n_samples"], axis=0
+        ).astype(np.float32)
         self.program["u_scale"] = (1.0, 1.0)
         self.program["u_size"] = (n_rows, n_cols)
         self.program["u_n"] = eeg_info["n_samples"]
@@ -200,7 +204,9 @@ class Canvas(app.Canvas):
 
             # PPG ------------------------------------------------
             if self.ppg:
-                samples = self.update_data(outlet=self.ppg, samples=samples, time=time, n_channels=3)
+                samples = self.update_data(
+                    outlet=self.ppg, samples=samples, time=time, n_channels=3
+                )
 
             self.data = np.vstack([self.data, samples])  # Concat
             self.data = self.data[-self.n_samples :]  # Keep only last window length
@@ -225,9 +231,11 @@ class Canvas(app.Canvas):
 
         # Normalize PPG (3 channels) --------------------
         if self.ppg:
-            plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.nanstd(
-                plot_data[:, 0:3], axis=0
-            )
+            std = np.nanstd(plot_data[:, 0:3], axis=0)
+            if std > 0:
+                plot_data[:, 0:3] = (
+                    plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)
+                ) / std
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

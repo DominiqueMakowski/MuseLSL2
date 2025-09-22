@@ -3,7 +3,55 @@ from functools import partial
 from . import backends
 
 
-def stream(address, ppg=True, acc=True, gyro=True, preset=None):
+def _configure_lsl_api_cfg():
+    """Configure liblsl via a temporary config file when not provided.
+
+    Disables IPv6 multicast (removes yellow warnings) and lowers log level to -1
+    to silence info/warn messages, without requiring a repo-level config file.
+
+    See https://github.com/hbldh/bleak/discussions/1423
+    """
+    import os, tempfile, atexit
+
+    if "LSLAPICFG" in os.environ:
+        return
+    cfg_fd, cfg_path = tempfile.mkstemp(prefix="lsl_api_", suffix=".cfg")
+    try:
+        with os.fdopen(cfg_fd, "w") as f:
+            f.write(
+                """
+[ports]
+IPv6 = disable
+
+[log]
+level = -1
+""".lstrip()
+            )
+    except Exception:
+        # If writing fails, close and remove the file and continue without config
+        try:
+            os.close(cfg_fd)
+        except Exception:
+            pass
+        try:
+            os.remove(cfg_path)
+        except Exception:
+            pass
+        return
+    os.environ["LSLAPICFG"] = cfg_path
+
+    def _cleanup_cfg():
+        try:
+            os.remove(cfg_path)
+        except Exception:
+            pass
+
+    atexit.register(_cleanup_cfg)
+
+
+def stream(address, ppg=True, acc=True, gyro=True, preset=None, quiet=True):
+    if quiet:
+        _configure_lsl_api_cfg()  # Silence LSL warnings
     import mne_lsl.lsl
     from .muse import Muse
 

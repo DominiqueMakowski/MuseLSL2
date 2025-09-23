@@ -1,6 +1,7 @@
 import bitstring
 import mne_lsl.lsl
 import numpy as np
+from typing import cast
 
 from .backends import BleakBackend
 
@@ -27,7 +28,18 @@ ATTR_TELEMETRY = "273e000b-4c4d-454d-96be-f03bac821358"  # 0x19-0x1b
 ATTR_PPG1 = "273e000f-4c4d-454d-96be-f03bac821358"  # ambient 0x37-0x39
 ATTR_PPG2 = "273e0010-4c4d-454d-96be-f03bac821358"  # infrared 0x3a-0x3c
 ATTR_PPG3 = "273e0011-4c4d-454d-96be-f03bac821358"  # red 0x3d-0x3f
-ATTR_THERMISTOR = "273e0012-4c4d-454d-96be-f03bac821358"  # muse S only, not implemented yet 0x40-0x42
+ATTR_THERMISTOR = (
+    "273e0012-4c4d-454d-96be-f03bac821358"  # muse S only, not implemented yet 0x40-0x42
+)
+
+# Muse S Athena notes
+# ---------------------------------------------------------------------------------------------
+# Newer devices (Muse S Athena) appear to use different characteristics layout:
+# - One characteristic for all EEG channels
+# - One characteristic for other sensors
+# Based on BrainFlow PR #779 discussion, the following UUIDs are observed:
+ATTR_ATHENA_EEG_ALL = "273e0013-4c4d-454d-96be-f03bac821358"
+ATTR_ATHENA_SENSORS_ALL = "273e0014-4c4d-454d-96be-f03bac821358"
 
 
 class Muse:
@@ -74,17 +86,18 @@ class Muse:
 
         self.preset = preset
         self.disable_light = disable_light
+        self.eeg_channel_count = 5
+        self._athena_local_counter = -1
 
     def connect(self):
         """Connect to the device"""
-
         print(f"Connecting to {self.address}...")
         self.adapter = BleakBackend()
         self.adapter.start()
         self.device = self.adapter.connect(self.address)
 
         # Send a preset to the device to enable some functionalities
-        if self.preset not in ["none", "None"]:
+        if self.preset and self.preset not in ["none", "None"]:
             self.select_preset(self.preset)
 
         # subscribes to EEG stream
@@ -116,7 +129,9 @@ class Muse:
     def _write_cmd(self, cmd):
         """Wrapper to write a command to the Muse device.
         cmd -- list of bytes"""
-        self.device.char_write_handle(0x000E, cmd, False)
+        # Write to the control/stream toggle characteristic by UUID to be robust
+        # across devices where handles differ (e.g., Muse Athena).
+        self.device.char_write_uuid(ATTR_STREAM_TOGGLE, cmd, False)
 
     def _write_cmd_str(self, cmd):
         """Wrapper to encode and write a command string to the Muse device.
@@ -176,6 +191,18 @@ class Muse:
     def resume(self):
         """Resume streaming, sending 'd' command"""
         self._write_cmd_str("d")
+        # Athena devices may require an alternate start command
+        try:
+            if hasattr(self, "device") and (
+                getattr(self.device, "has_characteristic", None)
+                and (
+                    self.device.has_characteristic(ATTR_ATHENA_EEG_ALL)
+                    or self.device.has_characteristic(ATTR_ATHENA_SENSORS_ALL)
+                )
+            ):
+                self._write_cmd_str("dc001")
+        except Exception:
+            pass
 
     def stop(self):
         """Stop streaming."""
@@ -217,11 +244,60 @@ class Muse:
 
     def _subscribe_eeg(self):
         """subscribe to eeg stream."""
-        self.device.subscribe(ATTR_TP9, callback=self._handle_eeg)
-        self.device.subscribe(ATTR_AF7, callback=self._handle_eeg)
-        self.device.subscribe(ATTR_AF8, callback=self._handle_eeg)
-        self.device.subscribe(ATTR_TP10, callback=self._handle_eeg)
-        self.device.subscribe(ATTR_RIGHTAUX, callback=self._handle_eeg)
+        # Prefer Athena combined EEG characteristic if present
+        if hasattr(
+            self.device, "has_characteristic"
+        ) and self.device.has_characteristic(ATTR_ATHENA_EEG_ALL):
+            print("Detected Muse S Athena combined EEG characteristic.")
+            # Default to 5 channels; actual shape will be adjusted on first packet
+            self.eeg_channel_count = 5
+            self._init_sample()
+            self.device.subscribe(
+                ATTR_ATHENA_EEG_ALL, callback=self._handle_eeg_combined
+            )
+            return
+
+        # Fallback to legacy per-channel characteristics
+        missing = []
+        mapping = [
+            (ATTR_TP9, 0),
+            (ATTR_AF7, 1),
+            (ATTR_AF8, 2),
+            (ATTR_TP10, 3),
+            (ATTR_RIGHTAUX, 4),
+        ]
+        found_any = False
+        found_map = []
+        for uuid, idx in mapping:
+            if hasattr(
+                self.device, "has_characteristic"
+            ) and not self.device.has_characteristic(uuid):
+                missing.append(uuid)
+            else:
+                found_any = True
+                found_map.append((uuid, idx))
+        if found_any and len(found_map) == 5:
+            # Size buffers to 5 channels for legacy devices
+            self.eeg_channel_count = 5
+            self._init_sample()
+            for uuid, idx in found_map:
+                self.device.subscribe(
+                    uuid, callback=lambda h, d, i=idx: self._handle_eeg_idx(i, h, d)
+                )
+        elif found_any and len(found_map) != 5:
+            print(
+                f"Found only {len(found_map)} EEG legacy characteristics; expected 5. Skipping subscription."
+            )
+        if not found_any:
+            print("No legacy EEG characteristics found, and Athena EEG not detected.")
+            print(
+                "Run 'MuseLSL2 inspect --address <MAC>' and share output for support."
+            )
+        elif missing:
+            print("Some EEG characteristics not found on this device:")
+            for u in missing:
+                print(f" - {u}")
+            print("Continuing with available channels.")
 
     def _unpack_eeg_channel(self, packet):
         """Decode data packet of one EEG channel.
@@ -230,20 +306,69 @@ class Muse:
         samples with a 12 bit resolution.
         """
         aa = bitstring.Bits(bytes=packet)
-        pattern = "uint:16,uint:12,uint:12,uint:12,uint:12,uint:12,uint:12, \
-                   uint:12,uint:12,uint:12,uint:12,uint:12,uint:12"
-
+        pattern = (
+            "uint:16,uint:12,uint:12,uint:12,uint:12,uint:12,uint:12, "
+            "uint:12,uint:12,uint:12,uint:12,uint:12,uint:12"
+        )
         res = aa.unpack(pattern)
-        packetIndex = res[0]
+        packet_index = cast(int, res[0])
         data = res[1:]
         # 12 bits on a 2 mVpp range
         data = 0.48828125 * (np.array(data) - 2048)
-        return packetIndex, data
+        return packet_index, data
 
     def _init_sample(self):
         """initialize array to store the samples"""
-        self.timestamps = np.full(5, np.nan)
-        self.data = np.zeros((5, 12))
+        self.timestamps = np.full(self.eeg_channel_count, np.nan)
+        self.data = np.zeros((self.eeg_channel_count, 12))
+
+    def _unpack_eeg_combined(self, packet):
+        """Attempt to decode Athena combined EEG packet.
+
+        This is experimental. We try two strategies:
+        1) Legacy-like: 16-bit timestamp + 5*12 int16 samples interleaved.
+        2) If sizes do not match, fall back to legacy 12-bit unpack per-channel is not applicable.
+
+        Returns (packet_index, data) where data is shape (5, 12) float array.
+        Raises ValueError if format is unknown.
+        """
+        b = memoryview(packet)
+        tm = None
+        if len(b) >= 2:
+            tm = int.from_bytes(b[0:2], byteorder="little", signed=False)
+            payload = b[2:]
+        else:
+            payload = b
+
+        # Heuristic 1: prefer tail blocks of expected sizes
+        for size, ch in ((120, 5), (96, 4)):
+            if len(payload) >= size:
+                arr = np.frombuffer(payload[-size:], dtype="<i2").astype(float)
+                try:
+                    data = arr.reshape(12, ch).T
+                    return tm, data
+                except Exception:
+                    pass
+
+        # Heuristic 2: sliding window to find a plausible block
+        for size, ch in ((120, 5), (96, 4)):
+            if len(payload) >= size:
+                limit = len(payload) - size + 1
+                for start in range(0, limit, 2):  # align to int16
+                    segment = payload[start : start + size]
+                    arr = np.frombuffer(segment, dtype="<i2").astype(float)
+                    nonzero_ratio = np.count_nonzero(arr) / arr.size
+                    if nonzero_ratio > 0.2:
+                        try:
+                            data = arr.reshape(12, ch).T
+                            return tm, data
+                        except Exception:
+                            continue
+
+        raise ValueError(
+            "Unknown Athena EEG packet format (len=%d, payload=%d)"
+            % (len(packet), len(payload))
+        )
 
     def _init_ppg_sample(self):
         """Initialise array to store PPG samples
@@ -285,7 +410,7 @@ class Muse:
         self.reg_params[1] = R
         self._P = P
 
-    def _handle_eeg(self, handle, data):
+    def _handle_eeg_idx(self, index, handle, data):
         """Callback for receiving a sample.
 
         samples are received in this order : 44, 41, 38, 32, 35
@@ -296,7 +421,6 @@ class Muse:
             self.first_sample = False
 
         timestamp = mne_lsl.lsl.local_clock()
-        index = int((handle - 32) / 3)
         tm, d = self._unpack_eeg_channel(data)
 
         if self.last_tm == 0:
@@ -304,8 +428,8 @@ class Muse:
 
         self.data[index] = d
         self.timestamps[index] = timestamp
-        # last data received
-        if handle == 35:
+        # When we've received all channel packets, push a frame
+        if not np.isnan(self.timestamps).any():
             if tm != self.last_tm + 1:
                 if (tm - self.last_tm) != -65535:  # counter reset
                     print("missing sample %d : %d" % (tm, self.last_tm))
@@ -318,23 +442,62 @@ class Muse:
             idxs = np.arange(0, 12) + self.sample_index
             self.sample_index += 12
 
-            # update timestamp correction
-            # We received the first packet as soon as the last timestamp got
-            # sampled
+            # update timestamp correction based on earliest packet timestamp
             self._update_timestamp_correction(idxs[-1], np.nanmin(self.timestamps))
 
-            # timestamps are extrapolated backwards based on sampling rate
-            # and current time
+            # timestamps are extrapolated based on sampling rate and start time
             timestamps = self.reg_params[1] * idxs + self.reg_params[0]
 
             # push data
-            self.callback_eeg(self.data, timestamps)
+            if self.callback_eeg:
+                self.callback_eeg(self.data, timestamps)
 
             # save last timestamp for disconnection timer
             self.last_timestamp = timestamps[-1]
 
             # reset sample
             self._init_sample()
+
+    def _handle_eeg_combined(self, handle, packet):
+        """Handle combined EEG notification for Muse S Athena.
+
+        Experimental: attempts to decode to 5x12 samples and reuse legacy pipeline.
+        """
+        if self.first_sample:
+            self._init_timestamp_correction()
+            self.first_sample = False
+
+        timestamp = mne_lsl.lsl.local_clock()
+        try:
+            tm, d = self._unpack_eeg_combined(packet)
+        except Exception as e:
+            # Log once per minute to avoid spamming
+            print(f"Athena EEG packet decode failed: {e}")
+            self.last_timestamp = timestamp
+            return
+
+        # Adjust buffer shape if needed
+        if d.shape[0] != self.data.shape[0]:
+            self.eeg_channel_count = d.shape[0]
+            print(f"Athena EEG channels detected: {self.eeg_channel_count}")
+            self._init_sample()
+        # Fill current data buffer
+        self.data[:, :] = d
+        self.timestamps[:] = timestamp
+
+        # Use continuous sample index without counter jumps for stability
+        idxs = np.arange(0, 12) + self.sample_index
+        self.sample_index += 12
+
+        # Anchor dejittering to the current receive timestamp
+        self._update_timestamp_correction(idxs[-1], timestamp)
+        timestamps = self.reg_params[1] * idxs + self.reg_params[0]
+
+        if self.callback_eeg:
+            self.callback_eeg(self.data, timestamps)
+
+        # Keep watchdog alive based on receive time
+        self.last_timestamp = timestamp
 
     def _init_control(self):
         """Variable to store the current incoming message."""
@@ -363,78 +526,80 @@ class Muse:
 
         each line is a message, the 4 messages are a json object.
         """
-        if handle != 14:
+        # No handle guard; subscription is bound by UUID
+        data_bytes = bytes(packet)
+        if not data_bytes:
             return
-
-        # Decode data
-        bit_decoder = bitstring.Bits(bytes=packet)
-        pattern = "uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8, \
-                    uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8,uint:8"
-
-        chars = bit_decoder.unpack(pattern)
-
-        # Length of the string
-        n_incoming = chars[0]
-
-        # Parse as chars, only useful bytes
-        incoming_message = "".join(map(chr, chars[1:]))[:n_incoming]
+        n_incoming = data_bytes[0]
+        incoming_message = data_bytes[1 : 1 + n_incoming].decode(
+            "ascii", errors="ignore"
+        )
 
         # Add to current message
         self._current_msg += incoming_message
 
         if incoming_message[-1] == "}":  # Message ended completely
-            self.callback_control(self._current_msg)
+            if self.callback_control:
+                self.callback_control(self._current_msg)
 
             self._init_control()
 
     def _subscribe_telemetry(self):
+        if hasattr(
+            self.device, "has_characteristic"
+        ) and not self.device.has_characteristic(ATTR_TELEMETRY):
+            print(f"TELEMETRY characteristic not found: {ATTR_TELEMETRY}")
+            print("Run 'MuseLSL2 inspect --address <MAC>' to discover proper UUID.")
+            return
         self.device.subscribe(ATTR_TELEMETRY, callback=self._handle_telemetry)
 
     def _handle_telemetry(self, handle, packet):
         """Handle the telemetry (battery, temperature and stuff) incoming data"""
-
-        if handle != 26:  # handle 0x1a
-            return
         timestamp = mne_lsl.lsl.local_clock()
 
         bit_decoder = bitstring.Bits(bytes=packet)
         pattern = "uint:16,uint:16,uint:16,uint:16,uint:16"  # The rest is 0 padding
         data = bit_decoder.unpack(pattern)
+        battery = float(cast(int, data[1])) / 512.0
+        fuel_gauge = float(cast(int, data[2])) * 2.2
+        adc_volt = cast(int, data[3])
+        temperature = cast(int, data[4])
 
-        battery = data[1] / 512
-        fuel_gauge = data[2] * 2.2
-        adc_volt = data[3]
-        temperature = data[4]
+        if self.callback_telemetry:
+            self.callback_telemetry(
+                timestamp, battery, fuel_gauge, adc_volt, temperature
+            )
 
-        self.callback_telemetry(timestamp, battery, fuel_gauge, adc_volt, temperature)
-
-    def _unpack_imu_channel(self, packet, scale=1):
+    def _unpack_imu_channel(self, packet, scale: float = 1.0):
         """Decode data packet of the accelerometer and gyro (imu) channels.
 
         Each packet is encoded with a 16bit timestamp followed by 9 samples
         with a 16 bit resolution.
         """
         bit_decoder = bitstring.Bits(bytes=packet)
-        pattern = "uint:16,int:16,int:16,int:16,int:16, \
-                   int:16,int:16,int:16,int:16,int:16"
-
+        pattern = (
+            "uint:16,int:16,int:16,int:16,int:16, " "int:16,int:16,int:16,int:16,int:16"
+        )
         data = bit_decoder.unpack(pattern)
-
-        packet_index = data[0]
-
-        samples = np.array(data[1:]).reshape((3, 3), order="F") * scale
-
+        packet_index = cast(int, data[0])
+        samples = np.array(data[1:], dtype=float).reshape((3, 3), order="F") * float(
+            scale
+        )
         return packet_index, samples
 
     def _subscribe_acc(self):
+        if hasattr(
+            self.device, "has_characteristic"
+        ) and not self.device.has_characteristic(ATTR_ACCELEROMETER):
+            print(f"ACC characteristic not found: {ATTR_ACCELEROMETER}")
+            print("Run 'MuseLSL2 inspect --address <MAC>' to discover proper UUID.")
+            return
         self.device.subscribe(ATTR_ACCELEROMETER, callback=self._handle_acc)
 
     def _handle_acc(self, handle, packet):
         """Handle incoming accelerometer data.
 
         sampling rate: ~17 x second (3 samples in each message, roughly 50Hz)"""
-        if handle != 23:  # handle 0x17
-            return
         timestamps = [mne_lsl.lsl.local_clock()] * 3
 
         # save last timestamp for disconnection timer
@@ -443,18 +608,22 @@ class Muse:
         # MUSE_ACCELEROMETER_SCALE_FACTOR (no idea where this comes from)
         packet_index, samples = self._unpack_imu_channel(packet, scale=0.0000610352)
 
-        self.callback_acc(samples, timestamps)
+        if self.callback_acc:
+            self.callback_acc(samples, timestamps)
 
     def _subscribe_gyro(self):
+        if hasattr(
+            self.device, "has_characteristic"
+        ) and not self.device.has_characteristic(ATTR_GYRO):
+            print(f"GYRO characteristic not found: {ATTR_GYRO}")
+            print("Run 'MuseLSL2 inspect --address <MAC>' to discover proper UUID.")
+            return
         self.device.subscribe(ATTR_GYRO, callback=self._handle_gyro)
 
     def _handle_gyro(self, handle, packet):
         """Handle incoming gyroscope data.
 
         sampling rate: ~17 x second (3 samples in each message, roughly 50Hz)"""
-        if handle != 20:  # handle 0x14
-            return
-
         timestamps = [mne_lsl.lsl.local_clock()] * 3
 
         # save last timestamp for disconnection timer
@@ -463,22 +632,37 @@ class Muse:
         # MUSE_GYRO_SCALE_FACTOR (no idea where this number comes from)
         packet_index, samples = self._unpack_imu_channel(packet, scale=0.0074768)
 
-        self.callback_gyro(samples, timestamps)
+        if self.callback_gyro:
+            self.callback_gyro(samples, timestamps)
 
     def _subscribe_ppg(self):
         """subscribe to ppg stream."""
-        self.device.subscribe(ATTR_PPG1, callback=self._handle_ppg)
-        self.device.subscribe(ATTR_PPG2, callback=self._handle_ppg)
-        self.device.subscribe(ATTR_PPG3, callback=self._handle_ppg)
+        mapping = [(ATTR_PPG1, 0), (ATTR_PPG2, 1), (ATTR_PPG3, 2)]
+        missing = []
+        for uuid, idx in mapping:
+            if hasattr(
+                self.device, "has_characteristic"
+            ) and not self.device.has_characteristic(uuid):
+                missing.append(uuid)
+            else:
+                self.device.subscribe(
+                    uuid, callback=lambda h, d, i=idx: self._handle_ppg_idx(i, h, d)
+                )
+        if missing:
+            print("PPG characteristics not found on this device:")
+            for u in missing:
+                print(f" - {u}")
+            print(
+                "Run 'MuseLSL2 inspect --address <MAC>' to list available characteristics."
+            )
 
-    def _handle_ppg(self, handle, data):
+    def _handle_ppg_idx(self, index, handle, data):
         """Callback for receiving a sample.
 
         samples are received in this order : 56, 59, 62
         wait until we get x and call the data callback
         """
         timestamp = mne_lsl.lsl.local_clock()
-        index = int((handle - 56) / 3)
         tm, d = self._unpack_ppg_channel(data)
 
         if self.last_tm_ppg == 0:
@@ -486,8 +670,8 @@ class Muse:
 
         self.data_ppg[index] = d
         self.timestamps_ppg[index] = timestamp
-        # last data received
-        if handle == 62:
+        # When we've received all 3 channel packets, push a frame
+        if not np.isnan(self.timestamps_ppg).any():
             if tm != self.last_tm_ppg + 1:
                 print("missing sample %d : %d" % (tm, self.last_tm_ppg))
             self.last_tm_ppg = tm
@@ -497,7 +681,9 @@ class Muse:
             self.sample_index_ppg += 6
 
             # timestamps are extrapolated backwards based on sampling rate and current time
-            timestamps = self.reg_ppg_sample_rate[1] * idxs + self.reg_ppg_sample_rate[0]
+            timestamps = (
+                self.reg_ppg_sample_rate[1] * idxs + self.reg_ppg_sample_rate[0]
+            )
 
             # save last timestamp for disconnection timer
             self.last_timestamp = timestamps[-1]
@@ -514,14 +700,12 @@ class Muse:
         Each packet is encoded with a 16bit timestamp followed by 3
         samples with an x bit resolution.
         """
-
         aa = bitstring.Bits(bytes=packet)
         pattern = "uint:16,uint:24,uint:24,uint:24,uint:24,uint:24,uint:24"
         res = aa.unpack(pattern)
-        packetIndex = res[0]
-        data = res[1:]
-
-        return packetIndex, data
+        packet_index = cast(int, res[0])
+        data = np.array(res[1:], dtype=float)
+        return packet_index, data
 
     def _disable_light(self):
         self._write_cmd_str("L0")

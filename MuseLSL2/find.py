@@ -5,7 +5,8 @@ def find_devices(max_duration=10, verbose=True):
     adapter = BleakBackend()
 
     adapter.start()
-    print(f"Searching for Muses (max. {max_duration} seconds)...")
+    if verbose:
+        print(f"Searching for Muses (max. {max_duration} seconds)...")
     devices = adapter.scan(timeout=max_duration)  # Muse scan timeout
     adapter.stop()
     muses = [d for d in devices if d["name"] and "Muse" in d["name"]]

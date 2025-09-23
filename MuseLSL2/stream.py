@@ -1,13 +1,61 @@
 from functools import partial
-
-import mne_lsl.lsl
+import numpy as np
 
 from . import backends
-from .muse import Muse
 
 
-# Begins LSL stream(s) from a Muse with a given address with data sources determined by arguments
-def stream(address, ppg=True, acc=True, gyro=True, preset=None):
+def _configure_lsl_api_cfg():
+    """Configure liblsl via a temporary config file when not provided.
+
+    Disables IPv6 multicast (removes yellow warnings) and lowers log level to -1
+    to silence info/warn messages, without requiring a repo-level config file.
+
+    See https://github.com/hbldh/bleak/discussions/1423
+    """
+    import os, tempfile, atexit
+
+    if "LSLAPICFG" in os.environ:
+        return
+    cfg_fd, cfg_path = tempfile.mkstemp(prefix="lsl_api_", suffix=".cfg")
+    try:
+        with os.fdopen(cfg_fd, "w") as f:
+            f.write(
+                """
+[ports]
+IPv6 = disable
+
+[log]
+level = -1
+""".lstrip()
+            )
+    except Exception:
+        # If writing fails, close and remove the file and continue without config
+        try:
+            os.close(cfg_fd)
+        except Exception:
+            pass
+        try:
+            os.remove(cfg_path)
+        except Exception:
+            pass
+        return
+    os.environ["LSLAPICFG"] = cfg_path
+
+    def _cleanup_cfg():
+        try:
+            os.remove(cfg_path)
+        except Exception:
+            pass
+
+    atexit.register(_cleanup_cfg)
+
+
+def stream(address, ppg=True, acc=True, gyro=True, preset=None, quiet=True):
+    if quiet:
+        _configure_lsl_api_cfg()  # Silence LSL warnings
+    import mne_lsl.lsl
+    from .muse import Muse
+
     # Find device
     if not address:
         from .find import find_devices
@@ -16,22 +64,34 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         address = device["address"]
 
     # EEG ====================================================
+    # Determine EEG channel count based on preset hints (p21 => 4 EEG only)
+    eeg_channels = 5
+    if preset is not None:
+        ps = str(preset).lower()
+        if ps.startswith("p"):
+            ps = ps[1:]
+        if ps in ("21",):
+            eeg_channels = 4
     eeg_info = mne_lsl.lsl.StreamInfo(
         "Muse",
         stype="EEG",
-        n_channels=5,
+        n_channels=eeg_channels,
         sfreq=256,
         dtype="float32",
         source_id=f"Muse_{address}",
     )
     eeg_info.desc.append_child_value("manufacturer", "Muse")
-    eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10", "AUX"])
-    eeg_info.set_channel_types(["eeg"] * 5)
+    if eeg_channels == 4:
+        eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10"])  # No AUX
+    else:
+        eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10", "AUX"])
+    eeg_info.set_channel_types(["eeg"] * eeg_channels)
     eeg_info.set_channel_units("microvolts")
 
     eeg_outlet = mne_lsl.lsl.StreamOutlet(eeg_info, chunk_size=6)
 
     # PPG ====================================================
+    ppg_outlet = None
     if ppg is True:
         ppg_info = mne_lsl.lsl.StreamInfo(
             "Muse",
@@ -47,9 +107,11 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         ppg_info.set_channel_types(["ppg"] * 3)
         ppg_info.set_channel_units("mmHg")
 
-        ppg_outlet = mne_lsl.lsl.StreamOutlet(ppg_info, chunk_size=1)
+        if ppg_info is not None:
+            ppg_outlet = mne_lsl.lsl.StreamOutlet(ppg_info, chunk_size=1)
 
     # ACC ====================================================
+    acc_outlet = None
     if acc:
         acc_info = mne_lsl.lsl.StreamInfo(
             "Muse",
@@ -64,9 +126,11 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         acc_info.set_channel_types(["accelerometer"] * 3)
         acc_info.set_channel_units("g")
 
-        acc_outlet = mne_lsl.lsl.StreamOutlet(acc_info, chunk_size=1)
+        if acc_info is not None:
+            acc_outlet = mne_lsl.lsl.StreamOutlet(acc_info, chunk_size=1)
 
     # GYRO ====================================================
+    gyro_outlet = None
     if gyro:
         gyro_info = mne_lsl.lsl.StreamInfo(
             "Muse",
@@ -81,12 +145,24 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         gyro_info.set_channel_types(["gyroscope"] * 3)
         gyro_info.set_channel_units("dps")
 
-        gyro_outlet = mne_lsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
+        if gyro_info is not None:
+            gyro_outlet = mne_lsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
 
     def push(data, timestamps, outlet):
-        outlet.push_chunk(data.T, timestamps[-1])
+        arr = np.asarray(data.T, dtype=np.float32)
+        outlet.push_chunk(arr, timestamps[-1])
 
-    push_eeg = partial(push, outlet=eeg_outlet)
+    def push_eeg(data, timestamps):
+        # Ensure channel dimension matches declared outlet
+        ch = data.shape[0]
+        if ch != eeg_channels:
+            if ch < eeg_channels:
+                pad = np.zeros((eeg_channels - ch, data.shape[1]), dtype=data.dtype)
+                data = np.vstack([data, pad])
+            else:
+                data = data[:eeg_channels, :]
+        push(data, timestamps, outlet=eeg_outlet)
+
     push_ppg = partial(push, outlet=ppg_outlet) if ppg else None
     push_acc = partial(push, outlet=acc_outlet) if acc else None
     push_gyro = partial(push, outlet=gyro_outlet) if gyro else None
@@ -110,14 +186,19 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None):
         acc_txt = ", ACC" if acc else ""
         gyro_txt = ", GYRO" if gyro else ""
 
-        print(f"Streaming... EEG{ppg_txt}{acc_txt}{gyro_txt}... (CTRL + C to interrupt)")
+        print(
+            f"Streaming... EEG{ppg_txt}{acc_txt}{gyro_txt}... (CTRL + C to interrupt)"
+        )
 
         # Disconnect if no data is received for 60 seconds
         while mne_lsl.lsl.local_clock() - muse.last_timestamp < 60:
             try:
                 backends.sleep(1)
             except KeyboardInterrupt:
-                muse.stop()
+                try:
+                    muse.stop()
+                except Exception:
+                    pass
                 print("Stream interrupted. Stopping...")
                 break
 

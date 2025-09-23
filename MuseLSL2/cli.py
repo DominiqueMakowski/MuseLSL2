@@ -14,7 +14,9 @@ class CLI:
         find_devices(max_duration=10, verbose=True)
 
     def stream(self):
-        parser = argparse.ArgumentParser(description="Start an LSL stream from Muse headset.")
+        parser = argparse.ArgumentParser(
+            description="Start an LSL stream from Muse headset."
+        )
         parser.add_argument(
             "-a",
             "--address",
@@ -51,8 +53,8 @@ class CLI:
             type=str,
             help="Select preset which dictates data channels to be streamed. Default is p50, but can also be 'none'",
         )
-
         args = parser.parse_args(sys.argv[2:])
+
         from .stream import stream
 
         stream(args.address, args.ppg, args.acc, args.gyro, args.preset)
@@ -61,3 +63,25 @@ class CLI:
         from .view import view
 
         view()
+
+    def inspect(self):
+        parser = argparse.ArgumentParser(
+            description="Inspect BLE GATT services/characteristics for a device."
+        )
+        parser.add_argument("--address", "-a", required=True, help="Device MAC address")
+        args = parser.parse_args(sys.argv[2:])
+        from .backends import BleakBackend
+
+        adapter = BleakBackend()
+        dev = adapter.connect(args.address)
+        try:
+            services = dev.get_services()
+            for svc in services:
+                print(f"Service {svc.uuid} ({getattr(svc, 'description', '')})")
+                for ch in svc.characteristics:
+                    props = ",".join(sorted(getattr(ch, "properties", [])))
+                    print(
+                        f"  Char {ch.uuid} handle={ch.handle} props=[{props}] desc={getattr(ch, 'description', '')}"
+                    )
+        finally:
+            dev.disconnect()

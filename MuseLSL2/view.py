@@ -93,7 +93,9 @@ def view():
 
 class Canvas(app.Canvas):
     def __init__(self, eeg, ppg=None):
-        app.Canvas.__init__(self, title="MuseLSL2 - Use your wheel to zoom!", keys="interactive")
+        app.Canvas.__init__(
+            self, title="MuseLSL2 - Use your wheel to zoom!", keys="interactive"
+        )
 
         # Get info from stream
         eeg_info = _view_info(eeg)
@@ -108,6 +110,10 @@ class Canvas(app.Canvas):
             (103 / 255, 58 / 255, 183 / 255),  # Dark Purple
             (0 / 255, 0 / 255, 0 / 255),  # Black
         ]
+        # Trim to actual EEG channel count (4 or 5)
+        eeg_n = eeg_info["n_channels"]
+        if eeg_n < len(colors):
+            colors = colors[:eeg_n]
         # Colors for impedence
         self.colors_quality = plt.get_cmap("RdYlGn")(np.linspace(0, 1, 11))[::-1]
 
@@ -141,7 +147,9 @@ class Canvas(app.Canvas):
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program["a_position"] = self.data.T.astype(np.float32).reshape(-1, 1)
         self.program["a_index"] = index
-        self.program["a_color"] = np.repeat(colors[::-1], eeg_info["n_samples"], axis=0).astype(np.float32)
+        self.program["a_color"] = np.repeat(
+            colors[::-1], eeg_info["n_samples"], axis=0
+        ).astype(np.float32)
         self.program["u_scale"] = (1.0, 1.0)
         self.program["u_size"] = (n_rows, n_cols)
         self.program["u_n"] = eeg_info["n_samples"]
@@ -158,9 +166,10 @@ class Canvas(app.Canvas):
 
         # Store
         self.eeg = eeg_info["inlet"]
-        self.ppg = False if ppg is None else ppg_info["inlet"]
+        self.ppg = ppg_info["inlet"] if ppg_info is not None else False
         self.n_samples = eeg_info["n_samples"]
         self.sfreq = eeg_info["sfreq"]
+        self.eeg_channels = eeg_info["n_channels"]
 
         # View
         self._timer = app.Timer("auto", connect=self.on_timer, start=True)
@@ -200,7 +209,9 @@ class Canvas(app.Canvas):
 
             # PPG ------------------------------------------------
             if self.ppg:
-                samples = self.update_data(outlet=self.ppg, samples=samples, time=time, n_channels=3)
+                samples = self.update_data(
+                    outlet=self.ppg, samples=samples, time=time, n_channels=3
+                )
 
             self.data = np.vstack([self.data, samples])  # Concat
             self.data = self.data[-self.n_samples :]  # Keep only last window length
@@ -208,14 +219,17 @@ class Canvas(app.Canvas):
         # Rescaling
         plot_data = self.data.copy()
 
-        # Normalize EEG (last 5 channels) --------------------
-        plot_data[:, -5:] = (plot_data[:, -5:] - plot_data[:, -5:].mean(axis=0)) / 500
+        # Normalize EEG (last 4 or 5 channels depending on stream) --------------------
+        eeg_ch = self.eeg_channels
+        plot_data[:, -eeg_ch:] = (
+            plot_data[:, -eeg_ch:] - plot_data[:, -eeg_ch:].mean(axis=0)
+        ) / 500
         # Compute Impedence
-        sd = np.std(plot_data[-int(self.sfreq) :, -5:], axis=0)[::-1] * 500
+        sd = np.std(plot_data[-int(self.sfreq) :, -eeg_ch:], axis=0)[::-1] * 500
         # Discretize the impedence into 11 levels for coloring
-        co = np.int32(np.tanh((sd - 30) / 15) * 5 + 5)
-        # Loop through the 5 last channels indices (EEG channels)
-        for i in range(5):
+        co = np.clip((np.tanh((sd - 30) / 15) * 5 + 5).astype(int), 0, 10)
+        # Loop through the EEG channels
+        for i in range(eeg_ch):
             self.display_quality[i].text = f"{sd[i]:.2f}"
             self.display_quality[i].color = self.colors_quality[co[i]]
             self.display_quality[i].font_size = 12 + co[i]
@@ -225,9 +239,11 @@ class Canvas(app.Canvas):
 
         # Normalize PPG (3 channels) --------------------
         if self.ppg:
-            plot_data[:, 0:3] = (plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)) / np.nanstd(
-                plot_data[:, 0:3], axis=0
-            )
+            std = np.nanstd(plot_data[:, 0:3], axis=0)
+            if np.all(std > 0):
+                plot_data[:, 0:3] = (
+                    plot_data[:, 0:3] - plot_data[:, 0:3].mean(axis=0)
+                ) / std
 
         self.program["a_position"].set_data(plot_data.T.ravel().astype(np.float32))
         self.update()

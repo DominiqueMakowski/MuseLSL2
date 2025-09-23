@@ -74,9 +74,29 @@ class BleakDevice:
             )
         )
 
+    def char_write_uuid(self, uuid, value, wait_for_response=True, timeout=30):
+        _wait(self._client.write_gatt_char(uuid, bytearray(value), wait_for_response))
+
     def subscribe(self, uuid, callback=None, indication=False, wait_for_response=True):
         def wrap(gatt_characteristic, data):
             value_handle = gatt_characteristic.handle + 1
             callback(value_handle, data)
 
         _wait(self._client.start_notify(uuid, wrap))
+
+    def has_characteristic(self, uuid: str) -> bool:
+        services = self._client.services
+        if services is None:
+            # Ensure services are resolved
+            services = _wait(self._client.get_services())
+        for service in services:
+            for char in service.characteristics:
+                if str(char.uuid).lower() == uuid.lower():
+                    return True
+        return False
+
+    def get_services(self):
+        services = self._client.services
+        if services is None:
+            services = _wait(self._client.get_services())
+        return services

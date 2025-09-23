@@ -32,6 +32,15 @@ ATTR_THERMISTOR = (
     "273e0012-4c4d-454d-96be-f03bac821358"  # muse S only, not implemented yet 0x40-0x42
 )
 
+# Muse S Athena notes
+# ---------------------------------------------------------------------------------------------
+# Newer devices (Muse S Athena) appear to use different characteristics layout:
+# - One characteristic for all EEG channels
+# - One characteristic for other sensors
+# Based on BrainFlow PR #779 discussion, the following UUIDs are observed:
+ATTR_ATHENA_EEG_ALL = "273e0013-4c4d-454d-96be-f03bac821358"
+ATTR_ATHENA_SENSORS_ALL = "273e0014-4c4d-454d-96be-f03bac821358"
+
 
 class Muse:
     """Muse EEG headband"""
@@ -77,6 +86,8 @@ class Muse:
 
         self.preset = preset
         self.disable_light = disable_light
+        self.eeg_channel_count = 5
+        self._athena_local_counter = -1
 
     def connect(self):
         """Connect to the device"""
@@ -180,6 +191,18 @@ class Muse:
     def resume(self):
         """Resume streaming, sending 'd' command"""
         self._write_cmd_str("d")
+        # Athena devices may require an alternate start command
+        try:
+            if hasattr(self, "device") and (
+                getattr(self.device, "has_characteristic", None)
+                and (
+                    self.device.has_characteristic(ATTR_ATHENA_EEG_ALL)
+                    or self.device.has_characteristic(ATTR_ATHENA_SENSORS_ALL)
+                )
+            ):
+                self._write_cmd_str("dc001")
+        except Exception:
+            pass
 
     def stop(self):
         """Stop streaming."""
@@ -221,7 +244,20 @@ class Muse:
 
     def _subscribe_eeg(self):
         """subscribe to eeg stream."""
-        # Bind channel index at subscription time to avoid relying on value handles
+        # Prefer Athena combined EEG characteristic if present
+        if hasattr(
+            self.device, "has_characteristic"
+        ) and self.device.has_characteristic(ATTR_ATHENA_EEG_ALL):
+            print("Detected Muse S Athena combined EEG characteristic.")
+            # Default to 5 channels; actual shape will be adjusted on first packet
+            self.eeg_channel_count = 5
+            self._init_sample()
+            self.device.subscribe(
+                ATTR_ATHENA_EEG_ALL, callback=self._handle_eeg_combined
+            )
+            return
+
+        # Fallback to legacy per-channel characteristics
         missing = []
         mapping = [
             (ATTR_TP9, 0),
@@ -230,22 +266,38 @@ class Muse:
             (ATTR_TP10, 3),
             (ATTR_RIGHTAUX, 4),
         ]
+        found_any = False
+        found_map = []
         for uuid, idx in mapping:
             if hasattr(
                 self.device, "has_characteristic"
             ) and not self.device.has_characteristic(uuid):
                 missing.append(uuid)
             else:
+                found_any = True
+                found_map.append((uuid, idx))
+        if found_any and len(found_map) == 5:
+            # Size buffers to 5 channels for legacy devices
+            self.eeg_channel_count = 5
+            self._init_sample()
+            for uuid, idx in found_map:
                 self.device.subscribe(
                     uuid, callback=lambda h, d, i=idx: self._handle_eeg_idx(i, h, d)
                 )
-        if missing:
-            print("EEG characteristics not found on this device:")
+        elif found_any and len(found_map) != 5:
+            print(
+                f"Found only {len(found_map)} EEG legacy characteristics; expected 5. Skipping subscription."
+            )
+        if not found_any:
+            print("No legacy EEG characteristics found, and Athena EEG not detected.")
+            print(
+                "Run 'MuseLSL2 inspect --address <MAC>' and share output for support."
+            )
+        elif missing:
+            print("Some EEG characteristics not found on this device:")
             for u in missing:
                 print(f" - {u}")
-            print(
-                "Run 'MuseLSL2 inspect --address <MAC>' to list available characteristics."
-            )
+            print("Continuing with available channels.")
 
     def _unpack_eeg_channel(self, packet):
         """Decode data packet of one EEG channel.
@@ -267,8 +319,56 @@ class Muse:
 
     def _init_sample(self):
         """initialize array to store the samples"""
-        self.timestamps = np.full(5, np.nan)
-        self.data = np.zeros((5, 12))
+        self.timestamps = np.full(self.eeg_channel_count, np.nan)
+        self.data = np.zeros((self.eeg_channel_count, 12))
+
+    def _unpack_eeg_combined(self, packet):
+        """Attempt to decode Athena combined EEG packet.
+
+        This is experimental. We try two strategies:
+        1) Legacy-like: 16-bit timestamp + 5*12 int16 samples interleaved.
+        2) If sizes do not match, fall back to legacy 12-bit unpack per-channel is not applicable.
+
+        Returns (packet_index, data) where data is shape (5, 12) float array.
+        Raises ValueError if format is unknown.
+        """
+        b = memoryview(packet)
+        tm = None
+        if len(b) >= 2:
+            tm = int.from_bytes(b[0:2], byteorder="little", signed=False)
+            payload = b[2:]
+        else:
+            payload = b
+
+        # Heuristic 1: prefer tail blocks of expected sizes
+        for size, ch in ((120, 5), (96, 4)):
+            if len(payload) >= size:
+                arr = np.frombuffer(payload[-size:], dtype="<i2").astype(float)
+                try:
+                    data = arr.reshape(12, ch).T
+                    return tm, data
+                except Exception:
+                    pass
+
+        # Heuristic 2: sliding window to find a plausible block
+        for size, ch in ((120, 5), (96, 4)):
+            if len(payload) >= size:
+                limit = len(payload) - size + 1
+                for start in range(0, limit, 2):  # align to int16
+                    segment = payload[start : start + size]
+                    arr = np.frombuffer(segment, dtype="<i2").astype(float)
+                    nonzero_ratio = np.count_nonzero(arr) / arr.size
+                    if nonzero_ratio > 0.2:
+                        try:
+                            data = arr.reshape(12, ch).T
+                            return tm, data
+                        except Exception:
+                            continue
+
+        raise ValueError(
+            "Unknown Athena EEG packet format (len=%d, payload=%d)"
+            % (len(packet), len(payload))
+        )
 
     def _init_ppg_sample(self):
         """Initialise array to store PPG samples
@@ -328,7 +428,7 @@ class Muse:
 
         self.data[index] = d
         self.timestamps[index] = timestamp
-        # When we've received all 5 channel packets, push a frame
+        # When we've received all channel packets, push a frame
         if not np.isnan(self.timestamps).any():
             if tm != self.last_tm + 1:
                 if (tm - self.last_tm) != -65535:  # counter reset
@@ -357,6 +457,47 @@ class Muse:
 
             # reset sample
             self._init_sample()
+
+    def _handle_eeg_combined(self, handle, packet):
+        """Handle combined EEG notification for Muse S Athena.
+
+        Experimental: attempts to decode to 5x12 samples and reuse legacy pipeline.
+        """
+        if self.first_sample:
+            self._init_timestamp_correction()
+            self.first_sample = False
+
+        timestamp = mne_lsl.lsl.local_clock()
+        try:
+            tm, d = self._unpack_eeg_combined(packet)
+        except Exception as e:
+            # Log once per minute to avoid spamming
+            print(f"Athena EEG packet decode failed: {e}")
+            self.last_timestamp = timestamp
+            return
+
+        # Adjust buffer shape if needed
+        if d.shape[0] != self.data.shape[0]:
+            self.eeg_channel_count = d.shape[0]
+            print(f"Athena EEG channels detected: {self.eeg_channel_count}")
+            self._init_sample()
+        # Fill current data buffer
+        self.data[:, :] = d
+        self.timestamps[:] = timestamp
+
+        # Use continuous sample index without counter jumps for stability
+        idxs = np.arange(0, 12) + self.sample_index
+        self.sample_index += 12
+
+        # Anchor dejittering to the current receive timestamp
+        self._update_timestamp_correction(idxs[-1], timestamp)
+        timestamps = self.reg_params[1] * idxs + self.reg_params[0]
+
+        if self.callback_eeg:
+            self.callback_eeg(self.data, timestamps)
+
+        # Keep watchdog alive based on receive time
+        self.last_timestamp = timestamp
 
     def _init_control(self):
         """Variable to store the current incoming message."""

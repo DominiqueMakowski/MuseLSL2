@@ -1,4 +1,5 @@
 from functools import partial
+import numpy as np
 
 from . import backends
 
@@ -63,17 +64,28 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None, quiet=True):
         address = device["address"]
 
     # EEG ====================================================
+    # Determine EEG channel count based on preset hints (p21 => 4 EEG only)
+    eeg_channels = 5
+    if preset is not None:
+        ps = str(preset).lower()
+        if ps.startswith("p"):
+            ps = ps[1:]
+        if ps in ("21",):
+            eeg_channels = 4
     eeg_info = mne_lsl.lsl.StreamInfo(
         "Muse",
         stype="EEG",
-        n_channels=5,
+        n_channels=eeg_channels,
         sfreq=256,
         dtype="float32",
         source_id=f"Muse_{address}",
     )
     eeg_info.desc.append_child_value("manufacturer", "Muse")
-    eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10", "AUX"])
-    eeg_info.set_channel_types(["eeg"] * 5)
+    if eeg_channels == 4:
+        eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10"])  # No AUX
+    else:
+        eeg_info.set_channel_names(["TP9", "AF7", "AF8", "TP10", "AUX"])
+    eeg_info.set_channel_types(["eeg"] * eeg_channels)
     eeg_info.set_channel_units("microvolts")
 
     eeg_outlet = mne_lsl.lsl.StreamOutlet(eeg_info, chunk_size=6)
@@ -137,9 +149,20 @@ def stream(address, ppg=True, acc=True, gyro=True, preset=None, quiet=True):
             gyro_outlet = mne_lsl.lsl.StreamOutlet(gyro_info, chunk_size=1)
 
     def push(data, timestamps, outlet):
-        outlet.push_chunk(data.T, timestamps[-1])
+        arr = np.asarray(data.T, dtype=np.float32)
+        outlet.push_chunk(arr, timestamps[-1])
 
-    push_eeg = partial(push, outlet=eeg_outlet)
+    def push_eeg(data, timestamps):
+        # Ensure channel dimension matches declared outlet
+        ch = data.shape[0]
+        if ch != eeg_channels:
+            if ch < eeg_channels:
+                pad = np.zeros((eeg_channels - ch, data.shape[1]), dtype=data.dtype)
+                data = np.vstack([data, pad])
+            else:
+                data = data[:eeg_channels, :]
+        push(data, timestamps, outlet=eeg_outlet)
+
     push_ppg = partial(push, outlet=ppg_outlet) if ppg else None
     push_acc = partial(push, outlet=acc_outlet) if acc else None
     push_gyro = partial(push, outlet=gyro_outlet) if gyro else None

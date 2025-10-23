@@ -1,5 +1,8 @@
 # MuseLSL2
 
+> [!TIP]
+> **For the Muse S Athena device, see the [OpenMuse](https://github.com/DominiqueMakowski/OpenMuse) package**
+
 This is a light reimplementation of [muse-lsl](https://github.com/alexandrebarachant/muse-lsl/) with a few improvements:
 
 - [x] Fixed [timestamps correctness](https://github.com/alexandrebarachant/muse-lsl/pull/197).
